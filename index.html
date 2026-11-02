@@ -1,0 +1,1332 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#15181d" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-48.png" sizes="48x48">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px) }
+#v-account .acctgrid > div:nth-child(2) > .blk:nth-child(-n+2) { display: none }</style>
+</head>
+<body>
+<meta charset="utf-8">
+<title>ドル円ナイトデスク</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;700&display=swap">
+<style>
+/* 取引アプリの画面：上に値段の帯、下（PCは左）に画面の切り替え。中身は線で区切ったリストで、カードは重ねない。暗い画面が基本、明るい端末では白地。 */
+:root {
+  --bg: #0d0f12; --panel: #15181d; --raise: #1d2127; --line: #272c34; --fg: #e7e9ec; --muted: #8e96a2; --faint: #5d6570;
+  --accent: #46b3c6; --up: #ef5a55; --down: #4b8ff0; --ok: #4cbf8a; --warn: #e2a64a; --px: #f08a3c;
+  --l1: #f0c45c; --l2: #b58cf0; --l3: #4fc1a6; --l4: #5ab8e8; --l5: #e8707e; --l6: #8e96a2;
+  --cloud-up: rgba(79, 193, 166, .15); --cloud-dn: rgba(232, 112, 126, .15); --band: rgba(90, 184, 232, .07);
+  --up-soft: rgba(239, 90, 85, .14); --down-soft: rgba(75, 143, 240, .15); --ok-soft: rgba(76, 191, 138, .14); --warn-soft: rgba(226, 166, 74, .14);
+  --font: "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+  --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px)); --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --bg: #f2f3f5; --panel: #ffffff; --raise: #e9ecf0; --line: #dadee4; --fg: #14171c; --muted: #5b6470; --faint: #8a929d;
+  --accent: #0b7d91; --up: #d2382f; --down: #1d5fcc; --ok: #1f8a57; --warn: #a2630a; --px: #c9600f;
+  --l1: #8f6c06; --l2: #7a4fc6; --l3: #13876c; --l4: #1873b4; --l5: #c03a4f; --l6: #6b7480;
+  --cloud-up: rgba(19, 135, 108, .12); --cloud-dn: rgba(192, 58, 79, .11); --band: rgba(24, 115, 180, .07);
+  --up-soft: rgba(210, 56, 47, .09); --down-soft: rgba(29, 95, 204, .09); --ok-soft: rgba(31, 138, 87, .1); --warn-soft: rgba(162, 99, 10, .1);
+  color-scheme: light } }
+:root[data-theme="light"] {
+  --bg: #f2f3f5; --panel: #ffffff; --raise: #e9ecf0; --line: #dadee4; --fg: #14171c; --muted: #5b6470; --faint: #8a929d;
+  --accent: #0b7d91; --up: #d2382f; --down: #1d5fcc; --ok: #1f8a57; --warn: #a2630a; --px: #c9600f;
+  --l1: #8f6c06; --l2: #7a4fc6; --l3: #13876c; --l4: #1873b4; --l5: #c03a4f; --l6: #6b7480;
+  --cloud-up: rgba(19, 135, 108, .12); --cloud-dn: rgba(192, 58, 79, .11); --band: rgba(24, 115, 180, .07);
+  --up-soft: rgba(210, 56, 47, .09); --down-soft: rgba(29, 95, 204, .09); --ok-soft: rgba(31, 138, 87, .1); --warn-soft: rgba(162, 99, 10, .1);
+  color-scheme: light }
+
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+html, body { height: 100% }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 14px; line-height: 1.6; margin: 0; -webkit-font-smoothing: antialiased }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--panel) }
+button, input, select { font: inherit; color: inherit }
+a { color: var(--accent) }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums }
+.up { color: var(--up) } .down { color: var(--down) } .muted { color: var(--muted) }
+
+/* 骨組み */
+.app { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "bar" "main" "nav" }
+.bar { grid-area: bar; background: var(--panel); border-bottom: 1px solid var(--line) }
+main { grid-area: main; overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch }
+nav.tabs { grid-area: nav; background: var(--panel); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(5, 1fr); padding-left: var(--gutter-l); padding-right: var(--gutter-r) }
+nav.tabs button { border: 0; background: none; padding: 7px 0 6px; display: grid; justify-items: center; gap: 2px; font-size: 10.5px; color: var(--muted); cursor: pointer; letter-spacing: .02em }
+nav.tabs svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round }
+nav.tabs button[aria-current="page"] { color: var(--accent) }
+@media (min-width: 900px) {
+  .app { grid-template-columns: 76px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "nav bar" "nav main" }
+  nav.tabs { grid-template-columns: 1fr; grid-auto-rows: min-content; gap: 6px; border-top: 0; border-right: 1px solid var(--line); padding: 14px 0 }
+  nav.tabs button { padding: 10px 0; font-size: 11px }
+}
+
+/* 値段の帯 */
+.bar-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px var(--gutter-r) 8px var(--gutter-l) }
+.sym b { display: block; font-size: 15px; letter-spacing: .04em; font-weight: 700 }
+.sym span { display: block; font-size: 11.5px; color: var(--muted) }
+.quote { text-align: right; line-height: 1.1 }
+.px { font-family: var(--mono); font-weight: 500; letter-spacing: -.01em; white-space: nowrap }
+.px .a { font-size: 18px } .px .b { font-size: 30px } .px .c { font-size: 15px; vertical-align: 12px; margin-left: 1px }
+.chg { font-size: 12px; margin-top: 2px; color: var(--muted) }
+
+/* 各画面 */
+.view { min-height: 100% }
+.pad { padding: 4px var(--gutter-r) 32px var(--gutter-l) }
+.wide { max-width: 1120px }
+.blk { padding: 18px 0; border-bottom: 1px solid var(--line); min-width: 0 }
+.blk:last-child { border-bottom: 0 }
+.eyebrow { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; color: var(--muted); letter-spacing: .06em; margin: 0 0 10px; font-weight: 500 }
+.eyebrow .aside { letter-spacing: 0; font-weight: 400 }
+h2 { font-size: 12px; font-weight: 500; margin: 0; letter-spacing: .06em }
+.fine { font-size: 12px; color: var(--muted); margin: 10px 0 0; max-width: 62ch }
+.chip { display: inline-block; font-size: 11.5px; padding: 2px 9px; border-radius: 3px; background: var(--raise); color: var(--muted); white-space: nowrap }
+.chip.open { background: var(--ok-soft); color: var(--ok) }
+.chip.closed { background: var(--warn-soft); color: var(--warn) }
+.textbtn { background: none; border: 0; color: var(--accent); padding: 0; cursor: pointer; font-size: 13px }
+@media (min-width: 900px) {
+  .home { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 40px }
+  .home .span2 { grid-column: 1 / -1 }
+}
+
+/* ホーム：判定 */
+.verdict { display: flex; align-items: center; gap: 14px; margin-bottom: 12px }
+.vword { font-size: 30px; font-weight: 700; letter-spacing: .12em; line-height: 1 }
+.vword.buy { color: var(--up) } .vword.sell { color: var(--down) } .vword.pass { color: var(--fg) }
+.checks { list-style: none; margin: 0; padding: 0 }
+.checks li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px }
+.checks b { display: block; font-weight: 500; font-size: 13.5px }
+.checks .d { color: var(--muted) }
+.mark { font-family: var(--mono); font-size: 10.5px; font-weight: 500; text-align: center; border-radius: 3px; padding: 1px 0; height: fit-content; margin-top: 3px }
+.mark.ok { background: var(--ok-soft); color: var(--ok) } .mark.ng { background: var(--warn-soft); color: var(--warn) } .mark.na { background: var(--raise); color: var(--muted) }
+.lv3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 12px; border: 1px solid var(--line); border-radius: 4px }
+.lv3 div { padding: 8px 10px; border-left: 1px solid var(--line) } .lv3 div:first-child { border-left: 0 }
+.lv3 span { display: block; font-size: 11px; color: var(--muted) } .lv3 b { font-family: var(--mono); font-weight: 500 }
+
+/* ホーム：総合スコア */
+.score-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px }
+.score-head b { font-family: var(--mono); font-size: 30px; font-weight: 500; line-height: 1 }
+.groups { display: grid; gap: 7px }
+.grow { display: grid; grid-template-columns: 6.5em minmax(0, 1fr) 3.4em; align-items: center; gap: 10px; font-size: 12.5px }
+.grow .v { font-family: var(--mono); text-align: right; font-size: 12px }
+.track { position: relative; height: 8px; background: var(--raise); border-radius: 2px }
+.track::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--faint) }
+.track i { position: absolute; top: 0; bottom: 0; border-radius: 2px }
+.scale3 { display: grid; grid-template-columns: 6.5em minmax(0, 1fr) 3.4em; gap: 10px; font-size: 11px; color: var(--muted); margin-top: 4px }
+.scale3 span:nth-child(2) { display: flex; justify-content: space-between }
+.scale3 i { font-style: normal }
+details.more { margin-top: 12px; font-size: 13px }
+details.more summary { cursor: pointer; color: var(--accent); list-style: none }
+details.more summary::-webkit-details-marker { display: none }
+details.more summary::before { content: "＋ " } details.more[open] summary::before { content: "－ " }
+.votes { list-style: none; margin: 8px 0 0; padding: 0 }
+.votes li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 12.5px }
+.votes li.grp { display: block; color: var(--muted); font-size: 11.5px; letter-spacing: .06em; border-top: 0; padding: 10px 0 2px }
+.vt { font-family: var(--mono); font-size: 10.5px; text-align: center; border-radius: 3px; padding: 1px 0; height: fit-content; margin-top: 2px }
+.vt.p { background: var(--up-soft); color: var(--up) } .vt.m { background: var(--down-soft); color: var(--down) } .vt.z { background: var(--raise); color: var(--muted) }
+
+/* ホーム：Claudeの整理 */
+.summary { font-size: 15px; line-height: 1.75; margin: 0 0 14px; max-width: 62ch }
+.factors { display: grid; gap: 14px }
+@media (min-width: 600px) { .factors { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px } }
+.factors h3 { font-size: 12px; font-weight: 500; margin: 0 0 6px; padding-bottom: 6px; border-bottom: 2px solid var(--line) }
+.factors .f-up h3 { border-color: var(--up) } .factors .f-dn h3 { border-color: var(--down) } .factors .f-ct h3 { border-color: var(--warn) }
+.factors ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13px }
+
+/* 予定 */
+.events { list-style: none; margin: 0; padding: 0 }
+.events li { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13.5px }
+.events li:first-child { border-top: 0 }
+.events .dt { font-family: var(--mono); font-size: 13px; line-height: 1.4 }
+.events .dt small { display: block; font-family: var(--font); color: var(--muted); font-size: 11px }
+.events .dt small.soon { color: var(--warn) }
+.events .sub { display: block; color: var(--muted); font-size: 12px }
+.cty { font-size: 10.5px; padding: 0 5px; border: 1px solid var(--line); border-radius: 3px; margin-right: 6px; color: var(--muted) }
+
+.mini { height: 120px; margin-top: 4px; cursor: pointer }
+
+/* チャート画面 */
+#v-chart { display: flex; flex-direction: column; height: 100%; min-height: 0 }
+.ctool { display: flex; align-items: center; gap: 8px; padding: 8px var(--gutter-r) 6px var(--gutter-l); border-bottom: 1px solid var(--line); background: var(--panel) }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; min-width: 0 }
+.seg button { border: 0; border-left: 1px solid var(--line); background: none; padding: 5px 11px; font-size: 12.5px; color: var(--muted); cursor: pointer; white-space: nowrap }
+.seg button:first-child { border-left: 0 }
+.seg button:focus-visible { outline-offset: -2px }
+.seg button[aria-pressed="true"] { background: var(--raise); color: var(--fg); box-shadow: inset 0 -2px 0 var(--accent) }
+.iconbtn { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: none; border-radius: 4px; padding: 5px 10px; font-size: 12.5px; color: var(--fg); cursor: pointer; white-space: nowrap }
+.iconbtn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round }
+.ohlc { display: flex; flex-wrap: wrap; gap: 2px 12px; padding: 6px var(--gutter-r) 4px var(--gutter-l); font-size: 11.5px; color: var(--muted) }
+.ohlc b { color: var(--fg); font-weight: 500 }
+.cbox { position: relative; flex: 1; min-height: 300px }
+.legend { position: absolute; top: 4px; left: 8px; z-index: 3; display: flex; flex-wrap: wrap; gap: 0 10px; font-size: 11px; font-family: var(--mono); pointer-events: none; max-width: calc(100% - 84px); line-height: 1.5 }
+.legend span { white-space: nowrap }
+.legend .nm { color: var(--muted); font-family: var(--font) }
+.cnote { padding: 6px var(--gutter-r) 8px var(--gutter-l); font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line) }
+
+/* 設定シート */
+.sheet { position: fixed; inset: 0; z-index: 30; display: flex; align-items: flex-end; justify-content: center }
+.sheet-back { position: absolute; inset: 0; background: rgba(0, 0, 0, .5) }
+.sheet-panel { position: relative; width: 100%; max-width: 560px; max-height: 88%; display: flex; flex-direction: column; background: var(--panel); border-radius: 10px 10px 0 0; border: 1px solid var(--line); border-bottom: 0; padding-bottom: env(safe-area-inset-bottom, 0px) }
+@media (min-width: 700px) { .sheet { align-items: center } .sheet-panel { border-radius: 8px; border-bottom: 1px solid var(--line); max-height: 82% } }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 14px var(--gutter-r) 10px var(--gutter-l) }
+.sheet-head h2 { font-size: 15px; letter-spacing: .02em; font-weight: 700 }
+.sheet-seg { padding: 0 var(--gutter-r) 10px var(--gutter-l); border-bottom: 1px solid var(--line) }
+.sheet-seg .seg { display: flex } .sheet-seg .seg button { flex: 1; padding: 8px }
+.sheet-body { overflow-y: auto; padding: 0 var(--gutter-r) 8px var(--gutter-l) }
+.irow { padding: 12px 0; border-bottom: 1px solid var(--line) }
+.irow-top { display: flex; align-items: center; gap: 12px }
+.irow-top label { display: flex; align-items: center; gap: 12px; flex: 1; cursor: pointer; font-weight: 500 }
+.irow input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); margin: 0; flex-shrink: 0 }
+.sw { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0 }
+.irow p { margin: 4px 0 0 32px; font-size: 12px; color: var(--muted) }
+.params { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 8px 0 0 32px }
+.params label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted) }
+.params input { width: 64px; border: 1px solid var(--line); background: var(--bg); border-radius: 4px; padding: 4px 6px; font-family: var(--mono); font-size: 13px }
+.sheet-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px var(--gutter-r) 12px var(--gutter-l); border-top: 1px solid var(--line) }
+.btn { border: 0; border-radius: 4px; padding: 10px 16px; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--panel) }
+.btn.ghost { background: none; border: 1px solid var(--line); color: var(--fg); font-weight: 400 }
+.btn.wide { width: 100% }
+.btn.danger { background: var(--up); color: #fff }
+.btn:disabled { opacity: .45; cursor: not-allowed }
+
+/* マーケット */
+.subnav { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--line) }
+.subnav .seg { display: flex; width: 100%; max-width: 480px } .subnav .seg button { flex: 1 }
+.figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 12px }
+.figs div { padding-right: 10px }
+.figs span { display: block; font-size: 11.5px; color: var(--muted) }
+.figs b { font-family: var(--mono); font-weight: 500; font-size: 20px }
+.lchart { height: 220px }
+.scroll { overflow-x: auto }
+table { width: 100%; border-collapse: collapse; font-size: 13px }
+th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top }
+th:first-child, td:first-child { padding-left: 0 } th:last-child, td:last-child { padding-right: 0 }
+th { color: var(--muted); font-weight: 400; font-size: 11.5px; white-space: nowrap }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap }
+.mk tr[data-t] { cursor: pointer }
+.mk tr[aria-pressed="true"] td:first-child b { color: var(--accent) }
+.mk td small, .ind td small { display: block; color: var(--muted); font-size: 11.5px; font-weight: 400 }
+.mk td b, .ind td b { font-weight: 500 }
+
+/* ニュース */
+.nlist { list-style: none; margin: 0; padding: 0 }
+.nlist li { border-bottom: 1px solid var(--line) }
+.nrow { display: grid; grid-template-columns: minmax(0, 1fr) 14px; gap: 10px; align-items: center; width: 100%; text-align: left; background: none; border: 0; padding: 11px 0; cursor: pointer }
+.nrow .t { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--muted) }
+.nrow .h { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; line-height: 1.5; margin: 1px 0 2px }
+.nrow .s { font-size: 11.5px; color: var(--muted) }
+.nrow .tag { font-size: 10.5px; color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; padding: 0 4px; margin-left: 6px }
+.nrow svg, .back svg { width: 14px; height: 14px; fill: none; stroke: var(--faint); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+.article { max-width: 680px; padding-top: 4px }
+.back { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; color: var(--accent); padding: 12px 0; cursor: pointer; font-size: 13.5px }
+.back svg { stroke: var(--accent) }
+.article .meta { font-size: 12px; color: var(--muted); font-family: var(--mono) }
+.article h2 { font-size: 20px; line-height: 1.5; letter-spacing: 0; font-weight: 700; margin: 6px 0 18px; text-wrap: balance }
+.explain { border-left: 2px solid var(--accent); padding: 2px 0 2px 14px; margin-bottom: 20px }
+.explain h3 { font-size: 12px; color: var(--muted); font-weight: 500; margin: 0 0 6px; letter-spacing: .06em }
+.explain p { margin: 0; font-size: 14.5px; line-height: 1.8 }
+.article .btn { display: inline-block; text-decoration: none }
+
+/* 練習口座 */
+.acct { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; margin-bottom: 14px }
+.acct span { display: block; font-size: 11.5px; color: var(--muted) }
+.acct b { font-family: var(--mono); font-size: 17px; font-weight: 500 }
+.acct .big b { font-size: 24px }
+.rank { display: grid; gap: 6px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-bottom: 14px }
+.rank .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
+.rank .title { font-weight: 700 }
+.xbar { height: 4px; background: var(--raise); border-radius: 2px; overflow: hidden } .xbar i { display: block; height: 100%; background: var(--accent) }
+.side3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px }
+.side3 button { border: 1px solid var(--line); background: none; border-radius: 4px; padding: 11px 0; font-weight: 700; cursor: pointer }
+.side3 button[aria-pressed="true"][data-side="buy"] { background: var(--up); border-color: var(--up); color: #fff }
+.side3 button[aria-pressed="true"][data-side="sell"] { background: var(--down); border-color: var(--down); color: #fff }
+.side3 button[aria-pressed="true"][data-side="pass"] { background: var(--fg); border-color: var(--fg); color: var(--bg) }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px }
+.field { display: grid; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0 }
+.field input[type="number"], .field select, textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 4px; padding: 8px 10px; font-family: var(--mono); color: var(--fg) }
+textarea { font: inherit; min-height: 64px; resize: vertical }
+.tick { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted) }
+.preview { border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; font-size: 13px; display: grid; gap: 4px; margin: 12px 0 }
+.preview .row, .position .row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px 10px }
+.scoreline { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 4px; font-size: 12.5px }
+.scoreline li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 8px }
+.note { font-size: 13px; padding: 10px 12px; border-radius: 4px; background: var(--raise); color: var(--muted); margin: 0 0 12px }
+.note.warn { background: var(--warn-soft); color: var(--warn) }
+.position { border: 1px solid var(--line); border-radius: 4px; padding: 12px; margin-bottom: 12px; font-size: 13.5px; display: grid; gap: 4px }
+.position h3, .ticket h3 { font-size: 14px; margin: 0 0 6px }
+.reset { margin-top: 20px }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 10px; margin-bottom: 14px }
+.stats span { display: block; font-size: 11.5px; color: var(--muted) } .stats b { font-family: var(--mono); font-weight: 500 }
+#hist td { white-space: nowrap }
+.badges { display: flex; flex-wrap: wrap; gap: 6px }
+.badge { font-size: 12px; padding: 3px 9px; border-radius: 3px; border: 1px dashed var(--line); color: var(--muted) }
+.badge.got { border-style: solid }
+.badge.got { border-color: var(--accent); color: var(--accent) }
+dl.gl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; margin: 8px 0 0; font-size: 13px }
+dl.gl dt { font-weight: 500 } dl.gl dd { margin: 0; color: var(--muted) }
+@media (min-width: 900px) { .acctgrid { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); column-gap: 40px; align-items: start } }
+@media (max-width: 520px) { .px .b { font-size: 26px } .seg button { padding: 5px 9px } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important } }
+</style>
+
+<div class="app">
+  <header class="bar">
+    <div class="bar-in">
+      <div class="sym"><b>USD/JPY</b><span id="asof">データを読み込み中</span></div>
+      <div class="quote"><div class="px" id="px"><span class="a">---.</span><span class="b">--</span><span class="c">-</span></div><div class="chg" id="chg"></div></div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ホーム -->
+    <section class="view" id="v-home" aria-label="ホーム">
+      <div class="pad wide home">
+        <div class="blk">
+          <div class="eyebrow"><h2>今夜のルール判定</h2><span class="aside" id="night"></span></div>
+          <div class="verdict"><span class="vword pass" id="verdict">---</span><span class="chip" id="market">確認中</span></div>
+          <ul class="checks" id="checks"></ul>
+          <div class="lv3" id="levels" hidden>
+            <div><span>入る値段</span><b id="lv-entry"></b></div>
+            <div><span>損切り</span><b id="lv-stop"></b></div>
+            <div><span>利確</span><b id="lv-take"></b></div>
+          </div>
+          <p class="fine">4つが全部そろった夜だけ「買い」か「売り」になる。過去で確かめたルールに当てはめた結果で、予想やおすすめじゃない。</p>
+        </div>
+
+        <div class="blk" id="score-blk" hidden>
+          <div class="eyebrow"><h2>総合スコア（参考）</h2><span class="aside">過去で未検証</span></div>
+          <div class="score-head"><b id="score-num">0</b><span class="chip" id="score-lean"></span></div>
+          <div class="groups" id="groups"></div>
+          <div class="scale3" aria-hidden="true"><span></span><span><i>−100 下向き</i><i>0</i><i>上向き +100</i></span><span></span></div>
+          <details class="more"><summary>材料ごとの内訳</summary><ul class="votes" id="votes"></ul></details>
+          <p class="fine" id="score-caution"></p>
+          <p class="fine">いろいろな材料が「上向き +1・下向き −1・どちらでもない 0」を出し、種類ごとに平均してから全体を −100〜+100 にしたもの。ルール判定とは別物。</p>
+        </div>
+
+        <div class="blk span2" id="comment-blk">
+          <div class="eyebrow"><h2>今夜の材料の整理</h2><span class="aside">Claude</span></div>
+          <div id="comment"><p class="fine" style="margin:0">今夜の整理はまだない。毎晩の更新（平日21:45ごろ）で入る。</p></div>
+        </div>
+
+        <div class="blk">
+          <div class="eyebrow"><h2>近い予定</h2><button class="textbtn" data-go="market" data-sub="events">すべて見る</button></div>
+          <ul class="events" id="events-short"></ul>
+        </div>
+
+        <div class="blk">
+          <div class="eyebrow"><h2>ここ5日の動き（1時間足）</h2><button class="textbtn" data-go="chart">チャートを開く</button></div>
+          <div class="mini" id="mini" role="img" aria-label="ここ5日のドル円の動き"></div>
+        </div>
+
+        <p class="fine span2" style="margin-top:18px">練習用のページで、お金は動かない。実際の注文は外為どっとコムのアプリで、そのときの値段を見て自分で決めてね。</p>
+      </div>
+    </section>
+
+    <!-- チャート -->
+    <section class="view" id="v-chart" aria-label="チャート" hidden>
+      <div class="ctool">
+        <div class="seg" role="group" id="tf" aria-label="足の長さ">
+          <button data-tf="h1" id="tf-h1">1時間</button>
+          <button data-tf="h2" id="tf-h2">2時間</button>
+          <button data-tf="h4" id="tf-h4">4時間</button>
+          <button data-tf="d1" id="tf-d1">日足</button>
+          <button data-tf="w1" id="tf-w1">週足</button>
+        </div>
+        <button class="iconbtn" id="open-settings" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>設定</button>
+      </div>
+      <div class="ohlc num" id="ohlc"></div>
+      <div class="cbox" id="cbox"></div>
+      <div class="cnote" id="cnote">指で左右に動かす・2本指で拡大。値段は毎晩の更新時点まで（リアルタイムではない）。</div>
+    </section>
+
+    <!-- マーケット -->
+    <section class="view" id="v-market" aria-label="マーケット" hidden>
+      <div class="pad wide">
+        <div class="subnav"><div class="seg" role="group" id="msub">
+          <button data-m="rates" id="m-rates">金利</button>
+          <button data-m="markets" id="m-markets">ほかの市場</button>
+          <button data-m="ind" id="m-ind">指標</button>
+          <button data-m="events" id="m-events">予定</button>
+        </div></div>
+
+        <div class="blk" data-mp="rates">
+          <div class="eyebrow"><h2>日米の金利（10年国債）</h2><span class="aside" id="rate-asof"></span></div>
+          <div class="figs" id="rates"></div>
+          <div class="lchart" id="chart-rate"></div>
+          <p class="fine">線は金利差（アメリカ − 日本）。広がるとドル高・円安、縮むとドル安・円高になりやすい。過去の検証で一番関係が強かった材料だけど、この先も同じとは限らない。</p>
+        </div>
+
+        <div class="blk" data-mp="markets" hidden>
+          <div class="eyebrow"><h2 id="mk-title">ほかの市場</h2><span class="aside">行をタップで図を切り替え</span></div>
+          <div class="lchart" id="chart-mk"></div>
+          <div class="scroll" style="margin-top:10px"><table class="mk"><thead><tr><th>市場</th><th class="n">今</th><th class="n">5日の変化</th><th class="n">ドル円との連動</th></tr></thead><tbody id="mk"></tbody></table></div>
+          <p class="fine">「ドル円との連動」は直近60日の動きの似かた（−1〜+1）。+1に近いほど一緒に動き、−1に近いほど逆に動く。0に近ければ関係が薄い。</p>
+        </div>
+
+        <div class="blk" data-mp="ind" hidden>
+          <div class="eyebrow"><h2>テクニカル指標（日足）</h2></div>
+          <div class="scroll"><table class="ind"><thead><tr><th>指標</th><th class="n">値</th></tr></thead><tbody id="ind"></tbody></table></div>
+        </div>
+
+        <div class="blk" data-mp="events" hidden>
+          <div class="eyebrow"><h2>これからの予定</h2></div>
+          <ul class="events" id="events"></ul>
+          <p class="fine">「推定」は毎月の決まりから計算した日。祝日などでずれることがある。物価の発表日は入っていない。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ニュース -->
+    <section class="view" id="v-news" aria-label="ニュース" hidden>
+      <div class="pad">
+        <div id="news-list-wrap" style="max-width:760px">
+          <div class="subnav"><div class="seg" role="group" id="nsub">
+            <button data-r="all" id="n-all">すべて</button>
+            <button data-r="JP" id="n-jp">日本</button>
+            <button data-r="US" id="n-us">海外</button>
+          </div></div>
+          <ul class="nlist" id="nlist"></ul>
+          <p class="fine">直近3日の見出し。タップすると、Claudeの短い解説と元の記事へのリンクが出る。</p>
+        </div>
+        <article class="article" id="article" hidden></article>
+      </div>
+    </section>
+
+    <!-- 練習口座 -->
+    <section class="view" id="v-account" aria-label="練習口座" hidden>
+      <div class="pad wide acctgrid">
+        <div class="blk">
+          <div class="eyebrow"><h2>練習口座</h2><span class="aside">空想のお金</span></div>
+          <div id="acct-body"><p class="note">記録はclaude.aiでこのページを開いたときに使える。読み込み中…</p></div>
+        </div>
+        <div>
+          <div class="blk">
+            <div class="eyebrow"><h2>成績</h2></div>
+            <div class="stats" id="stats"></div>
+            <div class="scroll"><table><thead><tr><th>夜</th><th>判断</th><th class="n">数量</th><th class="n">入った値段</th><th class="n">決済</th><th>結果</th><th class="n">損益</th><th class="n">ルール点</th></tr></thead><tbody id="hist"></tbody></table></div>
+          </div>
+          <div class="blk">
+            <div class="eyebrow"><h2>実績</h2></div>
+            <div class="badges" id="badges"></div>
+          </div>
+          <div class="blk">
+            <div class="eyebrow"><h2>言葉の意味</h2></div>
+            <dl class="gl">
+              <dt>損切り</dt><dd>損が小さいうちに止めて終えること。</dd>
+              <dt>利確</dt><dd>もうけを確定して終えること。</dd>
+              <dt>Lot</dt><dd>取引の単位。1Lot＝1,000ドル分。</dd>
+              <dt>銭</dt><dd>1銭＝0.01円。0.5円の値動きは50銭。</dd>
+              <dt>証拠金</dt><dd>取引するために口座に置いておくお金。1Lotでレート×1,000×4%。</dd>
+              <dt>ロスカット</dt><dd>損が膨らんで証拠金が足りなくなると、自動で決済されること。</dd>
+              <dt>XP</dt><dd>経験値。参加した夜と、ルールを守れた点数でたまる。</dd>
+            </dl>
+            <p class="fine">練習の約定は「更新したときの値段」、決済は翌晩の更新時の値段と1時間ごとの値動きで計算する（同じ1時間で損切りと利確の両方に届いたら損切りを先に数える）。データ：Yahoo Finance、財務省、FRB・日本銀行、Googleニュース。チャート：<a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView Lightweight Charts</a>。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs" id="nav" aria-label="画面の切り替え">
+    <button data-view="home" id="nav-home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-6 8 6v8.5a.5.5 0 0 1-.5.5H15v-6H9v6H4.5a.5.5 0 0 1-.5-.5z"/></svg>ホーム</button>
+    <button data-view="chart" id="nav-chart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 3.5v17M16.5 3.5v17"/><rect x="5.5" y="8" width="4" height="7" rx=".5"/><rect x="14.5" y="6" width="4" height="9" rx=".5"/></svg>チャート</button>
+    <button data-view="market" id="nav-market"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.4 2.2 3.6 4.9 3.6 8s-1.2 5.8-3.6 8c-2.4-2.2-3.6-4.9-3.6-8s1.2-5.8 3.6-8z"/></svg>マーケット</button>
+    <button data-view="news" id="nav-news"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4.5" width="16" height="15" rx="1.5"/><path d="M8 9h8M8 12.5h8M8 16h5"/></svg>ニュース</button>
+    <button data-view="account" id="nav-account"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6" width="17" height="13" rx="1.5"/><path d="M3.5 10h17"/><circle cx="16" cy="14.5" r="1"/></svg>練習口座</button>
+  </nav>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-back" data-close></div>
+  <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="sheet-head"><h2 id="sheet-title">チャート設定</h2><button class="btn ghost" data-close id="sheet-close">閉じる</button></div>
+    <div class="sheet-seg"><div class="seg" role="group" id="ssub">
+      <button data-s="trend" id="s-trend">ローソクに重ねる線</button>
+      <button data-s="osc" id="s-osc">下の図</button>
+    </div></div>
+    <div class="sheet-body" id="sheet-body"></div>
+    <div class="sheet-foot"><button class="textbtn" id="chart-reset">初期設定に戻す</button><span class="fine" style="margin:0">変えるとすぐ反映される</span></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.1.0/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+(function () {
+"use strict";
+const JST = 9 * 3600;
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const yen = (v) => (v < 0 ? "−" : v > 0 ? "+" : "") + Math.abs(Math.round(v)).toLocaleString("ja-JP") + "円";
+const yenPlain = (v) => Math.round(v).toLocaleString("ja-JP") + "円";
+const p3 = (v) => Number(v).toFixed(3);
+const sgn = (v, n, u) => (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v).toFixed(n) + (u || "");
+const WD = ["日", "月", "火", "水", "木", "金", "土"];
+const jst = (ms) => { const x = new Date(ms + JST * 1000); return { y: x.getUTCFullYear(), m: x.getUTCMonth() + 1, d: x.getUTCDate(), w: WD[x.getUTCDay()], wd: x.getUTCDay(), hh: String(x.getUTCHours()).padStart(2, "0"), mm: String(x.getUTCMinutes()).padStart(2, "0") }; };
+const dayLabel = (iso) => { const x = jst(Date.parse(iso + "T00:00:00+09:00")); return `${x.m}/${x.d}（${x.w}）`; };
+const ORDER_WINDOW = 3 * 3600;   // 更新から3時間だけ注文・取り消しできる（後から値動きを見て決められないように）
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 保存できなくても動く */ } } };
+
+let D = null;
+let trades = [], settings = null, db = null, canWrite = false;
+
+function tokens() {
+  const s = getComputedStyle(document.documentElement), g = (n) => s.getPropertyValue(n).trim();
+  const o = {};
+  ["bg", "panel", "raise", "line", "fg", "muted", "faint", "accent", "up", "down", "ok", "warn", "px", "l1", "l2", "l3", "l4", "l5", "l6", "cloud-up", "cloud-dn", "band"].forEach(k => { o[k.replace("-", "_")] = g("--" + k); });
+  return o;
+}
+
+/* ---------------- 画面の切り替え ---------------- */
+const VIEWS = ["home", "chart", "market", "news", "account"];
+let view = "home";
+function show(v, opt) {
+  if (!VIEWS.includes(v)) v = "home";
+  view = v;
+  VIEWS.forEach(x => { $("v-" + x).hidden = x !== v; const b = $("nav-" + x); if (x === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  $("main").scrollTop = 0;
+  if (v === "market" && opt && opt.sub) pickMarket(opt.sub);
+  if (v === "news") closeArticle();
+  try { history.replaceState(null, "", "#" + v); } catch (e) { /* 何もしない */ }
+  drawVisible();
+}
+function segGroup(id, attr, onPick, initial) {
+  const btns = [...document.querySelectorAll(`#${id} button`)];
+  const pick = (val) => { btns.forEach(x => x.setAttribute("aria-pressed", String(x.dataset[attr] === val))); onPick(val); };
+  btns.forEach(b => b.addEventListener("click", () => pick(b.dataset[attr])));
+  btns.forEach(x => x.setAttribute("aria-pressed", String(x.dataset[attr] === initial)));
+  return pick;
+}
+
+/* ---------------- 指標の計算（ページ側で計算して、期間を自由に変えられるようにする） ---------------- */
+const N = (len) => new Array(len).fill(null);
+function SMA(a, n) { const o = N(a.length); let s = 0, cnt = 0; for (let i = 0; i < a.length; i++) { if (a[i] == null) { s = 0; cnt = 0; continue; } s += a[i]; cnt++; if (cnt > n) { s -= a[i - n]; cnt = n; } if (cnt === n) o[i] = s / n; } return o; }
+function EMA(a, n) { const o = N(a.length), k = 2 / (n + 1); let e = null, c = 0; for (let i = 0; i < a.length; i++) { if (a[i] == null) continue; e = e == null ? a[i] : a[i] * k + e * (1 - k); c++; if (c >= n) o[i] = e; } return o; }
+function STD(a, n) { const m = SMA(a, n), o = N(a.length); for (let i = n - 1; i < a.length; i++) { if (m[i] == null) continue; let s = 0; for (let k = i - n + 1; k <= i; k++) s += (a[k] - m[i]) ** 2; o[i] = Math.sqrt(s / n); } return o; }
+function HH(a, n) { const o = N(a.length); for (let i = n - 1; i < a.length; i++) { let v = -Infinity; for (let k = i - n + 1; k <= i; k++) v = Math.max(v, a[k]); o[i] = v; } return o; }
+function LL(a, n) { const o = N(a.length); for (let i = n - 1; i < a.length; i++) { let v = Infinity; for (let k = i - n + 1; k <= i; k++) v = Math.min(v, a[k]); o[i] = v; } return o; }
+function RSI(c, n) { const o = N(c.length); let g = 0, l = 0; for (let i = 1; i < c.length; i++) { const d = c[i] - c[i - 1], up = Math.max(d, 0), dn = Math.max(-d, 0); if (i <= n) { g += up / n; l += dn / n; } else { g = (g * (n - 1) + up) / n; l = (l * (n - 1) + dn) / n; } if (i >= n) o[i] = g === 0 && l === 0 ? 50 : l === 0 ? 100 : 100 - 100 / (1 + g / l); } return o; }
+function MACD(c, f, s, sg) { const a = EMA(c, f), b = EMA(c, s), m = c.map((_, i) => a[i] == null || b[i] == null ? null : a[i] - b[i]); const sig = EMA(m, sg); return { m, sig, h: m.map((v, i) => v == null || sig[i] == null ? null : v - sig[i]) }; }
+function STOCH(h, l, c, n, k, d) { const hh = HH(h, n), ll = LL(l, n); const raw = c.map((v, i) => hh[i] == null ? null : hh[i] === ll[i] ? 50 : 100 * (v - ll[i]) / (hh[i] - ll[i])); const K = SMA(raw, k); return { K, D: SMA(K, d) }; }
+function CCI(h, l, c, n) { const tp = c.map((v, i) => (h[i] + l[i] + v) / 3), m = SMA(tp, n), o = N(c.length); for (let i = n - 1; i < c.length; i++) { let md = 0; for (let k = i - n + 1; k <= i; k++) md += Math.abs(tp[k] - m[i]); md /= n; o[i] = md === 0 ? 0 : (tp[i] - m[i]) / (0.015 * md); } return o; }
+function ATR(h, l, c, n) { const tr = c.map((v, i) => i === 0 ? h[i] - l[i] : Math.max(h[i] - l[i], Math.abs(h[i] - c[i - 1]), Math.abs(l[i] - c[i - 1]))); return SMA(tr, n); }
+function SAR(h, l, step, max) {
+  const n = h.length, o = N(n); if (n < 3) return o;
+  max = Math.max(max, step);
+  let up = h[1] >= h[0], af = step, ep = up ? h[1] : l[1], s = up ? l[0] : h[0];
+  for (let i = 2; i < n; i++) {
+    s = s + af * (ep - s);
+    if (up) { s = Math.min(s, l[i - 1], l[i - 2]); if (l[i] < s) { up = false; s = Math.max(ep, h[i]); ep = l[i]; af = step; } else if (h[i] > ep) { ep = h[i]; af = Math.min(af + step, max); } }
+    else { s = Math.max(s, h[i - 1], h[i - 2]); if (h[i] > s) { up = true; s = Math.min(ep, l[i]); ep = h[i]; af = step; } else if (l[i] < ep) { ep = l[i]; af = Math.min(af + step, max); } }
+    o[i] = { v: s, up };
+  }
+  return o;
+}
+
+/* ---------------- 足の作成 ---------------- */
+const TF = { h1: { sec: 3600, label: "1時間足", intraday: true }, h2: { sec: 7200, label: "2時間足", intraday: true }, h4: { sec: 14400, label: "4時間足", intraday: true }, d1: { sec: 86400, label: "日足" }, w1: { sec: 604800, label: "週足" } };
+function agg(bars, sec, offset) {
+  const out = []; let cur = null, key = null;
+  for (const b of bars) {
+    const k = Math.floor((b.time + offset) / sec);
+    if (k !== key) { if (cur) out.push(cur); key = k; cur = { time: k * sec - offset, open: b.open, high: b.high, low: b.low, close: b.close }; }
+    else { cur.high = Math.max(cur.high, b.high); cur.low = Math.min(cur.low, b.low); cur.close = b.close; }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+const barCache = {};
+function barsFor(tf) {
+  if (barCache[tf]) return barCache[tf];
+  const r = tf === "h1" ? D.hourly : tf === "h2" ? agg(D.hourly, 7200, JST) : tf === "h4" ? agg(D.hourly, 14400, JST) : tf === "d1" ? dailyFull() : agg(dailyFull(), 604800, 3 * 86400);
+  return (barCache[tf] = r);
+}
+/** 日足のデータ元は最後の日が途中で止まることがあるので、その日以降の1時間足で高値・安値・終値を足す */
+function dailyFull() {
+  const d = D.daily.map(b => Object.assign({}, b)), last = d[d.length - 1];
+  if (!last) return d;
+  agg(D.hourly.filter(b => b.time >= last.time), 86400, 0).forEach(b => {
+    const cur = d[d.length - 1];
+    if (b.time === cur.time) { cur.high = Math.max(cur.high, b.high); cur.low = Math.min(cur.low, b.low); cur.close = b.close; }
+    else if (b.time > cur.time) d.push(b);
+  });
+  return d;
+}
+/** 一目均衡表の先行スパン用に、最後の足より先の時刻を作る（土日は飛ばす） */
+function futureTimes(last, tf, count) {
+  const out = [], step = TF[tf].sec; let t = last;
+  while (out.length < count) {
+    t += step;
+    if (tf !== "w1") {
+      const x = jst(t * 1000), hr = +x.hh;
+      if (TF[tf].intraday ? (x.wd === 6 && hr >= 7) || x.wd === 0 || (x.wd === 1 && hr < 7) : (x.wd === 0 || x.wd === 6)) continue;   // 土曜7時〜月曜7時（日本時間）は市場が閉まっている
+    }
+    out.push(t);
+  }
+  return out;
+}
+
+/* ---------------- チャートの設定（この端末だけに覚える） ---------------- */
+const TREND = [
+  { k: "sma", name: "単純移動平均（SMA）", desc: "決まった本数の値段の平均。線の向きと、ローソクが上か下かで流れを見る。0か1にした線は表示しない。", params: [["短期", 5, 0, 300], ["中期", 20, 0, 300], ["長期", 50, 0, 300]], colors: ["l1", "l2", "l3"] },
+  { k: "ema", name: "指数平滑移動平均（EMA）", desc: "最近の値段を重く見る平均。SMAより早く向きが変わる。0か1にした線は表示しない。", params: [["短期", 12, 0, 300], ["長期", 26, 0, 300]], colors: ["l4", "l5"] },
+  { k: "bb", name: "ボリンジャーバンド", desc: "平均線の上下に、ふだんの値動きの幅を帯で描く。帯の外に出るのは行き過ぎの目安。", params: [["期間", 20, 5, 200], ["σ（幅）", 2, 0.5, 4]], colors: ["l4"] },
+  { k: "ichi", name: "一目均衡表", desc: "ローソクが雲（先行スパンの間）より上なら強い流れ、下なら弱い流れの目安。雲は先の時間まで描かれる。", params: [["転換線", 9, 2, 100], ["基準線", 26, 2, 200], ["スパン", 52, 2, 300]], colors: ["l4", "l5", "l3"] },
+  { k: "sar", name: "パラボリック", desc: "点がローソクの下なら上向き、上なら下向き。点が反対側へ移ると流れが変わった合図とされる。", params: [["加速", 0.02, 0.01, 0.1], ["上限", 0.2, 0.05, 0.5]], colors: ["l3", "l5"] },
+  { k: "lv", name: "節目（ピボット・20日の高安）", desc: "前日の高値・安値・終値から出す目安の値段（R1・P・S1）と、ここ20日の上限・下限。どの足でも日足から計算した値。", params: [], colors: ["accent"] },
+];
+const OSC = [
+  { k: "rsi", name: "RSI", desc: "0〜100。70以上は上がりすぎ、30以下は下がりすぎの目安。", params: [["期間", 14, 2, 100]] },
+  { k: "macd", name: "MACD", desc: "線（MACD）が点線（シグナル）より上なら上向きの勢い。棒はその差。", params: [["短期", 12, 2, 100], ["長期", 26, 3, 200], ["シグナル", 9, 2, 50]] },
+  { k: "stoch", name: "ストキャスティクス", desc: "0〜100。80以上は上がりすぎ、20以下は下がりすぎ。%Kが%Dを上に抜けると上向きの合図とされる。", params: [["期間", 14, 2, 100], ["%K", 3, 1, 20], ["%D", 3, 1, 20]] },
+  { k: "dev", name: "移動平均乖離率", desc: "平均線からどれだけ離れているか（%）。大きく離れると戻りやすいと言われる。", params: [["期間", 25, 2, 200]] },
+  { k: "cci", name: "CCI", desc: "勢いの強さ。+100超は上向き、−100未満は下向きの勢いが強い。", params: [["期間", 20, 2, 100]] },
+  { k: "atr", name: "ATR（値動きの幅）", desc: "1本の足が平均どれくらい動くか（円）。大きい時期は損切りに届きやすい。", params: [["期間", 14, 2, 100]] },
+];
+const MAX_OSC = 2;
+function defaults() {
+  const c = { v: 1, tf: "d1", trend: {}, osc: {}, oscOrder: ["macd", "rsi"] };
+  TREND.forEach(t => { c.trend[t.k] = { on: t.k === "sma", p: t.params.map(p => p[1]) }; });
+  c.trend.sma.p = [0, 20, 50];
+  OSC.forEach(o => { c.osc[o.k] = { p: o.params.map(p => p[1]) }; });
+  return c;
+}
+function clampParam(def, i, v) {
+  const [, dv, lo, hi] = def.params[i], frac = !Number.isInteger(dv) || (lo > 0 && lo < 1);
+  let x = Number.isFinite(+v) ? +v : dv; x = Math.min(hi, Math.max(lo, x));
+  return frac ? Math.round(x * 100) / 100 : Math.round(x);
+}
+function loadCfg() {
+  const s = store.get("nightdesk.chart"), d = defaults();
+  if (!s || s.v !== 1) return d;
+  try {
+    TREND.forEach(t => { const x = s.trend && s.trend[t.k]; if (x && Array.isArray(x.p) && x.p.length === t.params.length) d.trend[t.k] = { on: !!x.on, p: x.p.map((v, i) => clampParam(t, i, v)) }; });
+    OSC.forEach(o => { const x = s.osc && s.osc[o.k]; if (x && Array.isArray(x.p) && x.p.length === o.params.length) d.osc[o.k] = { p: x.p.map((v, i) => clampParam(o, i, v)) }; });
+    if (Array.isArray(s.oscOrder)) d.oscOrder = [...new Set(s.oscOrder)].filter(k => OSC.some(o => o.k === k)).slice(-MAX_OSC);
+    if (TF[s.tf]) d.tf = s.tf;
+  } catch (e) { return defaults(); }
+  return d;
+}
+let cfg = loadCfg();
+const saveCfg = () => store.set("nightdesk.chart", cfg);
+
+/* ---------------- データ ---------------- */
+fetch("data.json", { cache: "no-store" }).then(r => r.json()).then(d => {
+  D = d;
+  [renderTop, renderHome, renderMarket, renderNews].forEach(f => { try { f(); } catch (e) { console.error(e); } });
+  renderAccount(); settleOpen(); drawVisible();
+}).catch(() => { $("asof").textContent = "データを読み込めなかった。少し待って開き直してね。"; });
+
+function renderTop() {
+  const gen = jst(Date.parse(D.generatedAt));
+  $("asof").textContent = `更新 ${gen.m}/${gen.d}（${gen.w}）${gen.hh}:${gen.mm}`;
+  const s = p3(D.snapshot.price), i = s.indexOf(".");
+  const px = $("px"); px.textContent = "";
+  px.append(el("span", "a", s.slice(0, i + 1)), el("span", "b", s.slice(i + 1, i + 3)), el("span", "c", s.slice(i + 3)));
+  px.setAttribute("aria-label", "ドル円 " + s + "円");
+  const ch = D.snapshot.change24h, c = $("chg"); c.textContent = "24時間前比 ";
+  c.append(el("span", ch > 0 ? "up num" : ch < 0 ? "down num" : "num", sgn(ch * 100, 1, "銭")));
+}
+
+/* ---------------- ホーム ---------------- */
+function renderHome() {
+  const d = D, j = d.judgment;
+  $("night").textContent = dayLabel(d.night) + "の夜";
+  const v = $("verdict");
+  v.textContent = { buy: "買い", sell: "売り", pass: "見送り" }[j.verdict]; v.className = "vword " + j.verdict;
+  const m = $("market");
+  if (orderOpen()) { m.textContent = "練習注文 受付中"; m.className = "chip open"; }
+  else if (d.weekday === 4) { m.textContent = "金曜は新しく入らない"; m.className = "chip closed"; }
+  else { m.textContent = "注文の時間外"; m.className = "chip closed"; }
+  const ul = $("checks"); ul.textContent = "";
+  j.checks.forEach(c => {
+    const li = el("li"), body = el("div");
+    body.append(el("b", null, c.label), el("span", "d", c.detail));
+    li.append(el("span", "mark " + (c.ok == null ? "na" : c.ok ? "ok" : "ng"), c.ok == null ? "—" : c.ok ? "OK" : "NG"), body);
+    ul.append(li);
+  });
+  if (j.verdict !== "pass") { $("levels").hidden = false; $("lv-entry").textContent = p3(j.price); $("lv-stop").textContent = p3(j.stopPrice); $("lv-take").textContent = p3(j.takePrice); }
+
+  const x = d.extra;
+  if (x && x.composite) {
+    const c = x.composite; $("score-blk").hidden = false;
+    $("score-num").textContent = sgn(c.score, 0).replace("±", "");
+    $("score-lean").textContent = c.lean;
+    const g = $("groups"); g.textContent = "";
+    Object.entries(c.groups || {}).forEach(([k, val]) => {
+      const row = el("div", "grow"), tr = el("div", "track"), bar = el("i");
+      const w = Math.min(50, Math.abs(val) / 2);
+      bar.style.left = (val >= 0 ? 50 : 50 - w) + "%"; bar.style.width = w + "%"; bar.style.background = val > 0 ? "var(--up)" : "var(--down)";
+      tr.append(bar); row.append(el("span", null, k), tr, el("span", "v", sgn(val, 0).replace("±", "")));
+      g.append(row);
+    });
+    const vu = $("votes"); vu.textContent = ""; let grp = null;
+    c.votes.forEach(vo => {
+      if (vo.group !== grp) { grp = vo.group; vu.append(el("li", "grp", grp)); }
+      const li = el("li"); li.append(el("span", "vt " + (vo.vote > 0 ? "p" : vo.vote < 0 ? "m" : "z"), vo.vote > 0 ? "+1" : vo.vote < 0 ? "−1" : "0"), el("span", null, `${vo.label}：${vo.reason}`)); vu.append(li);
+    });
+    $("score-caution").textContent = c.caution || "";
+  }
+
+  const cm = d.comment;
+  if (cm && (cm.summary || cm.bullish)) {
+    const box = $("comment"); box.textContent = "";
+    box.append(el("p", "summary", cm.summary || ""));
+    const f = el("div", "factors");
+    const col = (cls, title, items) => { const w = el("div", cls); w.append(el("h3", null, title)); const u = el("ul"); (items && items.length ? items : ["とくになし"]).forEach(t => u.append(el("li", null, t))); w.append(u); f.append(w); };
+    if (cm.bullish || cm.bearish || cm.cautions) {
+      col("f-up", "上向き（ドル高・円安）の材料", cm.bullish); col("f-dn", "下向き（ドル安・円高）の材料", cm.bearish); col("f-ct", "注意すること", cm.cautions);
+    } else if (cm.points) col("f-ct", "要点", cm.points);
+    box.append(f, el("p", "fine", "材料を並べたもので、売買のおすすめじゃない。"));
+  }
+  renderEvents($("events-short"), 3);
+}
+
+function renderEvents(ul, limit) {
+  ul.textContent = "";
+  const today = Date.parse(D.generatedAt.slice(0, 10) + "T00:00:00+09:00");
+  let evs = D.events.map(e => Object.assign({ diff: Math.round((Date.parse(e.date + "T00:00:00+09:00") - today) / 864e5) }, e));
+  if (limit) evs = evs.filter(e => e.diff >= 0).slice(0, limit);
+  if (!evs.length) { ul.append(el("li", "fine", "この先の大きな予定は見つからなかった。")); return; }
+  evs.forEach(e => {
+    const li = el("li"), dt = el("div", "dt", dayLabel(e.date));
+    dt.append(el("small", e.diff >= 0 && e.diff <= 2 ? "soon" : null, e.diff < 0 ? "終わった" : e.diff === 0 ? "今日" : `${e.diff}日後`));
+    const body = el("div"), name = el("div");
+    name.append(el("span", "cty", e.country === "US" ? "米" : "日"), document.createTextNode(e.name));
+    body.append(name, el("span", "sub", `日本時間 ${e.jst}${e.estimated ? "・推定" : ""}`));
+    li.append(dt, body); ul.append(li);
+  });
+}
+
+/* ---------------- マーケット ---------------- */
+let mSub = "rates", mkSel = null;
+const pickMarket = segGroup("msub", "m", (val) => { mSub = val; document.querySelectorAll("[data-mp]").forEach(p => { p.hidden = p.dataset.mp !== val; }); drawVisible(); }, "rates");
+
+function renderMarket() {
+  const L = D.rates.latest, rt = $("rates"); rt.textContent = "";
+  [["アメリカ", L.us10.toFixed(2) + "%"], ["日本", L.jp10.toFixed(2) + "%"], ["金利差", L.diff.toFixed(2) + "%"]].forEach(([k, v]) => { const x = el("div"); x.append(el("span", null, k), el("b", null, v)); rt.append(x); });
+  $("rate-asof").textContent = dayLabel(D.rates.asOf) + "時点";
+
+  const ind = D.indicators, x = D.extra;
+  const rows = [
+    ["日足の終値", p3(ind.close), "日足の最後の値段（データ元の区切りの時刻の値段）。"],
+    ["5日平均", p3(ind.sma5), "ここ1週間の平均。今の値段が上なら短い流れは上向き。"],
+    ["20日平均", p3(ind.sma20), "約1か月の平均。よく使われる「流れ」の目安。"],
+    ["50日平均", p3(ind.sma50), "約2か月半の平均。大きな流れの目安。"],
+    ["RSI（14日）", ind.rsi.toFixed(1), "70以上は上がりすぎ、30以下は下がりすぎの目安。"],
+    ["MACD / シグナル", `${ind.macd.toFixed(3)} / ${ind.signal.toFixed(3)}`, "勢いの目安。MACDがシグナル（MACDの平均）より上なら上向きの勢い。"],
+    ...(x ? [
+      ["ストキャス %K / %D", `${x.latest.stochK} / ${x.latest.stochD}`, "0〜100。80以上は上がりすぎ、20以下は下がりすぎ。"],
+      ["25日平均からの乖離率", sgn(x.latest.dev25, 2, "%"), "平均からどれだけ離れているか。±2%を超えると戻りやすいと言われる。"],
+      ["CCI（20日）", sgn(x.latest.cci, 0), "+100超は上向き、−100未満は下向きの勢いが強い。"],
+    ] : []),
+    ["1日の値動き（ATR）", p3(ind.atr) + "円", "最近の1日の平均的な動き幅。損切り幅を決める目安。"],
+    ...(x ? [
+      ["ピボット R1 / P / S1", `${p3(x.levels.pivots.R1)} / ${p3(x.levels.pivots.P)} / ${p3(x.levels.pivots.S1)}`, `${dayLabel(x.levels.pivotDay || D.night)}の高値・安値・終値から出す目安の値段。R1は上の壁、S1は下の支えになりやすい。`],
+      ["20日の高値 / 安値", `${p3(x.levels.high20)} / ${p3(x.levels.low20)}`, "ここ1か月の上限と下限。抜けると動きが大きくなりやすい。"],
+    ] : []),
+    ["52週の高値 / 安値", `${p3(ind.high52)} / ${p3(ind.low52)}`, "この1年でいちばん高かった値段と安かった値段。"],
+  ];
+  const tb = $("ind"); tb.textContent = "";
+  rows.forEach(r => { const tr = el("tr"), a = el("td"); a.append(el("b", null, r[0]), el("small", null, r[2])); tr.append(a, el("td", "n", r[1])); tb.append(tr); });
+
+  if (x && x.markets && x.markets.length) {
+    const tb2 = $("mk"); tb2.textContent = "";
+    mkSel = mkSel || x.markets[0].ticker;
+    x.markets.forEach(mm => {
+      const tr = el("tr"); tr.dataset.t = mm.ticker; tr.tabIndex = 0; tr.setAttribute("role", "button"); tr.setAttribute("aria-pressed", String(mm.ticker === mkSel));
+      const name = el("td"); name.append(el("b", null, mm.name), el("small", null, mm.note));
+      const fmt = (mm.last >= 1000 ? Math.round(mm.last).toLocaleString("ja-JP") : mm.last.toFixed(2)) + (mm.unit === "円" ? "円" : mm.unit === "%" ? "%" : "");
+      tr.append(name, el("td", "n", fmt), el("td", "n", mm.chg5 == null ? "—" : sgn(mm.chg5, 2, mm.chg5Unit)), el("td", "n", mm.corr60 == null ? "—" : sgn(mm.corr60, 2)));
+      const pick = () => { mkSel = mm.ticker; tb2.querySelectorAll("tr").forEach(r => r.setAttribute("aria-pressed", String(r.dataset.t === mkSel))); dirty.mk = true; drawVisible(); };
+      tr.addEventListener("click", pick); tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+      tb2.append(tr);
+    });
+  } else $("m-markets").hidden = true;
+  renderEvents($("events"), 0);
+}
+
+/* ---------------- ニュース ---------------- */
+let nReg = "all";
+segGroup("nsub", "r", (val) => { nReg = val; renderNews(); }, "all");
+const CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+const timeOf = (n) => { const ms = n.time ? Date.parse(n.time) : NaN; if (isNaN(ms)) return ""; const t = jst(ms); return `${t.m}/${t.d} ${t.hh}:${t.mm}`; };
+const noteOf = (n) => (D.comment && D.comment.newsNotes && n.id && D.comment.newsNotes[n.id]) || "";
+function renderNews() {
+  if (!D) return;
+  const ul = $("nlist"); ul.textContent = "";
+  const seen = new Set();
+  const items = D.news.filter(n => /^https?:\/\//.test(n.url || "") && (nReg === "all" || n.region === nReg)).slice().sort((a, b) => (b.time || "").localeCompare(a.time || ""))
+    .filter(n => { const k = n.title.replace(/\s/g, ""); if (seen.has(k)) return false; seen.add(k); return true; });
+  if (!items.length) { ul.append(el("li", "fine", "見出しを取れなかった。")); return; }
+  items.forEach(n => {
+    const li = el("li"), b = el("button", "nrow"), txt = el("span");
+    txt.append(el("span", "t", timeOf(n)), el("span", "h", n.title));
+    const s = el("span", "s", n.source || ""); if (noteOf(n)) s.append(el("span", "tag", "解説あり"));
+    txt.append(s); b.append(txt); b.insertAdjacentHTML("beforeend", CHEV);
+    b.addEventListener("click", () => openArticle(n)); li.append(b); ul.append(li);
+  });
+}
+function openArticle(n) {
+  const a = $("article"); a.textContent = "";
+  const back = el("button", "back"); back.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>'); back.append("ニュース一覧");
+  back.addEventListener("click", closeArticle);
+  a.append(back, el("div", "meta", `${n.source || ""}　${timeOf(n)}　${n.region === "JP" ? "日本" : "海外"}`), el("h2", null, n.title));
+  const ex = el("div", "explain"); ex.append(el("h3", null, "Claudeの解説"));
+  ex.append(el("p", null, noteOf(n) || "この見出しの解説はまだない。毎晩の更新で、ドル円に関係しそうな見出しから順に解説を入れる。"));
+  a.append(ex);
+  const go = el("a", "btn", "元の記事を開く"); go.href = n.url; go.target = "_blank"; go.rel = "noopener noreferrer";
+  a.append(go, el("p", "fine", "記事の本文は元のサイトで読んでね（このページには載せられない）。解説は見出しから読み取れることだけで、推測をふくむ。"));
+  $("news-list-wrap").hidden = true; a.hidden = false; $("main").scrollTop = 0;
+  back.focus();
+}
+function closeArticle() { $("article").hidden = true; $("news-list-wrap").hidden = false; }
+
+/* ---------------- チャートの設定シート ---------------- */
+let sTab = "trend";
+segGroup("ssub", "s", (val) => { sTab = val; renderSheet(); }, "trend");
+function renderSheet() {
+  const body = $("sheet-body"); body.textContent = "";
+  const t = tokens();
+  if (sTab === "osc") body.append(el("p", "fine", `下の図は${MAX_OSC}つまで。3つ目を選ぶと、先に選んだものが外れる。`));
+  (sTab === "trend" ? TREND : OSC).forEach(def => {
+    const isT = sTab === "trend", st = isT ? cfg.trend[def.k] : cfg.osc[def.k];
+    const on = isT ? st.on : cfg.oscOrder.includes(def.k);
+    const row = el("div", "irow"), top = el("div", "irow-top"), lab = el("label");
+    const cb = el("input"); cb.type = "checkbox"; cb.id = "ind-" + def.k; cb.checked = on;
+    lab.htmlFor = cb.id; lab.append(cb);
+    if (isT) { const sw = el("span", "sw"); sw.style.background = t[def.colors[0]] || t.accent; lab.append(sw); }
+    lab.append(document.createTextNode(def.name));
+    top.append(lab); row.append(top, el("p", null, def.desc));
+    cb.addEventListener("change", () => {
+      if (isT) st.on = cb.checked;
+      else if (cb.checked) { cfg.oscOrder = cfg.oscOrder.filter(k => k !== def.k).concat(def.k); while (cfg.oscOrder.length > MAX_OSC) cfg.oscOrder.shift(); }
+      else cfg.oscOrder = cfg.oscOrder.filter(k => k !== def.k);
+      saveCfg(); renderSheet(); dirty.main = true; drawVisible();
+      const again = $(cb.id); if (again) again.focus();
+    });
+    if (def.params.length) {
+      const ps = el("div", "params");
+      def.params.forEach(([name, dv, lo, hi], i) => {
+        const l = el("label", null, name), inp = el("input"); inp.type = "number"; inp.id = `p-${def.k}-${i}`;
+        const frac = !Number.isInteger(dv) || (lo > 0 && lo < 1);
+        inp.min = lo; inp.max = hi; inp.step = frac ? "0.01" : "1"; inp.value = st.p[i]; inp.inputMode = frac ? "decimal" : "numeric";
+        inp.addEventListener("change", () => {
+          const val = clampParam(def, i, parseFloat(inp.value));
+          st.p[i] = val; inp.value = val; saveCfg(); dirty.main = true; drawVisible();
+        });
+        l.append(inp); ps.append(l);
+      });
+      row.append(ps);
+    }
+    body.append(row);
+  });
+}
+let lastFocus = null;
+function openSheet() { lastFocus = document.activeElement && document.activeElement !== document.body ? document.activeElement : $("open-settings"); renderSheet(); document.querySelector(".app").inert = true; $("sheet").hidden = false; $("sheet-close").focus(); }
+function closeSheet() { $("sheet").hidden = true; document.querySelector(".app").inert = false; (lastFocus || $("open-settings")).focus(); }
+
+/* ---------------- 帯・雲を塗る部品 ---------------- */
+class BandFill {
+  constructor(points, colorA, colorB) { this.pts = points; this.cA = colorA; this.cB = colorB || colorA; }
+  attached(p) { this.chart = p.chart; this.series = p.series; }
+  detached() {}
+  updateAllViews() {}
+  paneViews() { const self = this; return [{ zOrder: () => "bottom", renderer: () => ({ draw: (target) => self.draw(target) }) }]; }
+  draw(target) {
+    const ts = this.chart.timeScale(), s = this.series;
+    target.useBitmapCoordinateSpace(({ context: ctx, horizontalPixelRatio: hr, verticalPixelRatio: vr }) => {
+      let prev = null;
+      for (const p of this.pts) {
+        const x = ts.timeToCoordinate(p.time), ya = s.priceToCoordinate(p.a), yb = s.priceToCoordinate(p.b);
+        if (x == null || ya == null || yb == null) { prev = null; continue; }
+        if (prev) {
+          ctx.fillStyle = prev.a >= prev.b ? this.cA : this.cB;
+          ctx.beginPath(); ctx.moveTo(prev.x * hr, prev.ya * vr); ctx.lineTo(x * hr, ya * vr); ctx.lineTo(x * hr, yb * vr); ctx.lineTo(prev.x * hr, prev.yb * vr); ctx.closePath(); ctx.fill();
+        }
+        prev = { x, ya, yb, a: p.a, b: p.b };
+      }
+    });
+  }
+}
+
+/* ---------------- チャートを描く ---------------- */
+const LCH = () => window.LightweightCharts;
+const dirty = { main: true, mini: true, rate: true, mk: true };
+const charts = {};
+const S = (t) => t + JST;   // 画面の時刻を日本時間にする
+const pf = (prec) => ({ type: "price", precision: prec, minMove: Math.pow(10, -prec) });
+const two = (v) => String(v).padStart(2, "0");
+const tickFmt = (time, type) => { const x = new Date(time * 1000); return type === 0 ? x.getUTCFullYear() + "年" : type === 1 ? (x.getUTCMonth() + 1) + "月" : type === 2 ? `${x.getUTCMonth() + 1}/${x.getUTCDate()}` : `${two(x.getUTCHours())}:${two(x.getUTCMinutes())}`; };
+const timeFmt = (intraday) => (time) => { const x = new Date(time * 1000), d = `${x.getUTCFullYear()}/${x.getUTCMonth() + 1}/${x.getUTCDate()}（${WD[x.getUTCDay()]}）`; return intraday ? `${d} ${two(x.getUTCHours())}:${two(x.getUTCMinutes())}` : d; };
+function baseOpts(t, extra, intraday) {
+  return Object.assign({
+    autoSize: true,
+    layout: { background: { type: "solid", color: t.bg }, textColor: t.muted, fontFamily: "IBM Plex Mono, Consolas, monospace", fontSize: 11, panes: { separatorColor: t.line, separatorHoverColor: t.raise, enableResize: false } },
+    grid: { vertLines: { color: t.line }, horzLines: { color: t.line } },
+    rightPriceScale: { borderColor: t.line }, timeScale: { borderColor: t.line, tickMarkFormatter: tickFmt },
+    crosshair: { mode: 0, vertLine: { color: t.faint, labelBackgroundColor: t.raise }, horzLine: { color: t.faint, labelBackgroundColor: t.raise } },
+    localization: { locale: "ja-JP", timeFormatter: timeFmt(!!intraday) },
+    handleScroll: { mouseWheel: false, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+    handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+  }, extra || {});
+}
+function drop(name) { if (charts[name]) { try { charts[name].remove(); } catch (e) { /* 何もしない */ } charts[name] = null; } }
+function drawVisible() {
+  if (!D || !LCH()) return;
+  try {
+    if (view === "chart" && dirty.main) { drawMain(); dirty.main = false; }
+    if (view === "home" && dirty.mini) { drawMini(); dirty.mini = false; }
+    if (view === "market" && mSub === "rates" && dirty.rate) { drawRate(); dirty.rate = false; }
+    if (view === "market" && mSub === "markets" && dirty.mk) { drawMk(); dirty.mk = false; }
+  } catch (e) { console.error(e); if (view === "chart") $("cnote").textContent = "チャートを描けなかった。ほかの画面はそのまま使える。"; }
+}
+
+let mainRO = null;
+function drawMain() {
+  drop("main");
+  const box = $("cbox"); box.textContent = "";
+  const LC = LCH(), t = tokens(), tf = cfg.tf, bars = barsFor(tf), n = bars.length;
+  if (!n) return;
+  const H = bars.map(b => b.high), L = bars.map(b => b.low), C = bars.map(b => b.close);
+  const ichi = cfg.trend.ichi.on;
+  const shiftN = ichi ? Math.max(1, cfg.trend.ichi.p[1] - 1) : 0;   // 先行スパンは基準線の本数ぶん先（今の足を1本目に数える）
+  const times = bars.map(b => b.time).concat(ichi ? futureTimes(bars[n - 1].time, tf, shiftN) : []);
+  const chart = LC.createChart(box, baseOpts(t, { timeScale: { borderColor: t.line, tickMarkFormatter: tickFmt, timeVisible: !!TF[tf].intraday, secondsVisible: false, rightOffset: 3 } }, TF[tf].intraday));
+  charts.main = chart;
+  const cs = chart.addSeries(LC.CandlestickSeries, { upColor: t.up, downColor: t.down, borderUpColor: t.up, borderDownColor: t.down, wickUpColor: t.up, wickDownColor: t.down, priceFormat: pf(3), priceLineColor: t.px, priceLineStyle: 0 });
+  const cdata = bars.map(b => ({ time: S(b.time), open: b.open, high: b.high, low: b.low, close: b.close }));
+  if (ichi) times.slice(n).forEach(x => cdata.push({ time: S(x) }));
+  cs.setData(cdata);
+  const legendItems = [];
+  const leg = (pane, label, color, get) => legendItems.push({ pane, label, color, get });
+  const line = (vals, color, pane, opts, off) => {
+    const s = chart.addSeries(LC.LineSeries, Object.assign({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }, opts || {}), pane || 0);
+    const data = []; vals.forEach((v, i) => { const k = i + (off || 0); if (v != null && k >= 0 && k < times.length) data.push({ time: S(times[k]), value: v }); });
+    s.setData(data); return s;
+  };
+  const at = (arr, off) => (i) => { const k = i - (off || 0); return k >= 0 && k < arr.length ? arr[k] : null; };
+
+  // ローソクに重ねる線
+  const T = cfg.trend;
+  if (T.bb.on) {
+    const [n0, k] = T.bb.p, m = SMA(C, n0), sd = STD(C, n0);
+    const up = m.map((v, i) => v == null ? null : v + k * sd[i]), dn = m.map((v, i) => v == null ? null : v - k * sd[i]);
+    cs.attachPrimitive(new BandFill(m.map((v, i) => v == null ? null : { time: S(times[i]), a: up[i], b: dn[i] }).filter(Boolean), t.band));
+    line(up, t.l4, 0); line(m, t.l4, 0, { lineStyle: 2 }); line(dn, t.l4, 0);
+    leg(0, `BB ${n0}・${k}σ`, t.l4, (i) => up[i] != null ? `${p3(up[i])} / ${p3(dn[i])}` : null);
+  }
+  if (ichi) {
+    const [a, b, c] = T.ichi.p;
+    const hhA = HH(H, a), llA = LL(L, a), ten = hhA.map((v, i) => v == null ? null : (v + llA[i]) / 2);
+    const hhB = HH(H, b), llB = LL(L, b), kij = hhB.map((v, i) => v == null ? null : (v + llB[i]) / 2);
+    const hhC = HH(H, c), llC = LL(L, c);
+    const spA = ten.map((v, i) => v == null || kij[i] == null ? null : (v + kij[i]) / 2);
+    const spB = hhC.map((v, i) => v == null ? null : (v + llC[i]) / 2);
+    const cloud = []; for (let i = 0; i < n; i++) { const k = i + shiftN; if (spA[i] != null && spB[i] != null && k < times.length) cloud.push({ time: S(times[k]), a: spA[i], b: spB[i] }); }
+    cs.attachPrimitive(new BandFill(cloud, t.cloud_up, t.cloud_dn));
+    line(spA, t.l3, 0, {}, shiftN); line(spB, t.l5, 0, { lineStyle: 2 }, shiftN);
+    line(ten, t.l4, 0); line(kij, t.l5, 0, { lineWidth: 2 }); line(C, t.l6, 0, {}, -shiftN);
+    leg(0, `転換線 ${a}`, t.l4, at(ten)); leg(0, `基準線 ${b}`, t.l5, at(kij));
+    leg(0, `先行スパン ${c}`, t.l3, (i) => { const x = at(spA, shiftN)(i), y = at(spB, shiftN)(i); return x == null || y == null ? null : `${p3(x)} / ${p3(y)}`; });
+  }
+  if (T.sma.on) T.sma.p.forEach((p, i) => { if (p >= 2) { const col = t[["l1", "l2", "l3"][i]], v = SMA(C, p); line(v, col, 0, { lineWidth: i === 1 ? 2 : 1 }); leg(0, `SMA ${p}`, col, at(v)); } });
+  if (T.ema.on) T.ema.p.forEach((p, i) => { if (p >= 2) { const col = t[["l4", "l5"][i]], v = EMA(C, p); line(v, col, 0); leg(0, `EMA ${p}`, col, at(v)); } });
+  if (T.sar.on) {
+    const sar = SAR(H, L, T.sar.p[0], T.sar.p[1]);
+    const s = chart.addSeries(LC.LineSeries, { lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, color: t.l3 }, 0);
+    s.setData(sar.map((v, i) => v ? { time: S(times[i]), value: v.v, color: v.up ? t.l3 : t.l5 } : null).filter(Boolean));
+    leg(0, "パラボリック", t.l3, (i) => sar[i] ? p3(sar[i].v) : null);
+  }
+  if (T.lv.on && D.extra) {
+    const lv = D.extra.levels, pv = lv.pivots;
+    [["R1", pv.R1], ["P", pv.P], ["S1", pv.S1]].forEach(([k, v]) => cs.createPriceLine({ price: v, color: t.accent, lineWidth: 1, lineStyle: 1, title: k }));
+    cs.createPriceLine({ price: lv.high20, color: t.muted, lineWidth: 1, lineStyle: 2, title: "20日高値", axisLabelVisible: false });
+    cs.createPriceLine({ price: lv.low20, color: t.muted, lineWidth: 1, lineStyle: 2, title: "20日安値", axisLabelVisible: false });
+  }
+  const j = D.judgment;
+  if (j.verdict !== "pass") {
+    cs.createPriceLine({ price: j.stopPrice, color: t.warn, lineWidth: 1, lineStyle: 2, title: "損切り" });
+    cs.createPriceLine({ price: j.takePrice, color: t.ok, lineWidth: 1, lineStyle: 2, title: "利確" });
+  }
+
+  // 下の図
+  const panes = [];
+  cfg.oscOrder.forEach((k, idx) => {
+    const pane = idx + 1, p = cfg.osc[k].p; panes.push(pane);
+    const guide = (s, price, color) => s.createPriceLine({ price, color, lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
+    const ln = (vals, color, opts) => { const s = line(vals, color, pane, Object.assign({ lastValueVisible: true }, opts || {})); s.priceScale().applyOptions({ scaleMargins: { top: 0.08, bottom: 0.08 } }); return s; };
+    const fixed = { autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }) };
+    if (k === "rsi") { const v = RSI(C, p[0]), s = ln(v, t.l2, Object.assign({ priceFormat: pf(1) }, fixed)); guide(s, 70, t.up); guide(s, 30, t.down); leg(pane, `RSI ${p[0]}`, t.l2, (i) => v[i] == null ? null : v[i].toFixed(1)); }
+    if (k === "macd") {
+      const r = MACD(C, Math.min(p[0], p[1]), Math.max(p[0], p[1]), p[2]);
+      const hs = chart.addSeries(LC.HistogramSeries, { priceLineVisible: false, lastValueVisible: false, priceFormat: pf(3) }, pane);
+      hs.setData(r.h.map((v, i) => v == null ? null : { time: S(times[i]), value: v, color: v >= 0 ? t.up : t.down }).filter(Boolean));
+      ln(r.m, t.l1, { priceFormat: pf(3) }); ln(r.sig, t.l2, { lineStyle: 2, priceFormat: pf(3), lastValueVisible: false });
+      leg(pane, `MACD ${p.join("・")}`, t.l1, (i) => r.m[i] == null ? null : sgn(r.m[i], 3).replace("±", "")); leg(pane, "シグナル", t.l2, (i) => r.sig[i] == null ? null : sgn(r.sig[i], 3).replace("±", ""));
+    }
+    if (k === "stoch") {
+      const r = STOCH(H, L, C, p[0], p[1], p[2]), s = ln(r.K, t.l1, Object.assign({ priceFormat: pf(1) }, fixed)); ln(r.D, t.l2, Object.assign({ lineStyle: 2, priceFormat: pf(1), lastValueVisible: false }, fixed));
+      guide(s, 80, t.up); guide(s, 20, t.down);
+      leg(pane, `%K ${p[0]}・${p[1]}`, t.l1, (i) => r.K[i] == null ? null : r.K[i].toFixed(1)); leg(pane, `%D ${p[2]}`, t.l2, (i) => r.D[i] == null ? null : r.D[i].toFixed(1));
+    }
+    if (k === "dev") { const m = SMA(C, p[0]), v = C.map((c, i) => m[i] == null ? null : (c - m[i]) / m[i] * 100), s = ln(v, t.l4, { priceFormat: pf(2) }); guide(s, 0, t.faint); leg(pane, `乖離率 ${p[0]}`, t.l4, (i) => v[i] == null ? null : sgn(v[i], 2, "%")); }
+    if (k === "cci") { const v = CCI(H, L, C, p[0]), s = ln(v, t.l4, { priceFormat: pf(0) }); guide(s, 100, t.up); guide(s, -100, t.down); leg(pane, `CCI ${p[0]}`, t.l4, (i) => v[i] == null ? null : sgn(v[i], 0).replace("±", "")); }
+    if (k === "atr") { const v = ATR(H, L, C, p[0]); ln(v, t.l4, { priceFormat: pf(3) }); leg(pane, `ATR ${p[0]}`, t.l4, (i) => v[i] == null ? null : v[i].toFixed(3)); }
+  });
+  const ps = chart.panes();
+  if (ps[0]) ps[0].setStretchFactor(panes.length ? 3 : 1);
+  panes.forEach(p => ps[p] && ps[p].setStretchFactor(1));
+
+  let ranged = false;
+  const setRange = () => { if (!box.clientWidth) return; ranged = true; const visible = Math.min(n, box.clientWidth > 700 ? 180 : 110); chart.timeScale().setVisibleLogicalRange({ from: n - visible, to: n + (ichi ? Math.min(shiftN, 12) : 3) }); };
+  setRange();
+
+  // 4本値と凡例（指でなぞった足の値を出す）
+  const legs = {};
+  [0, ...panes].forEach(p => { const d = el("div", "legend"); legs[p] = d; box.append(d); });
+  const place = () => {
+    const ps2 = chart.panes(), br = box.getBoundingClientRect();
+    [0, ...panes].forEach(p => { const pe = ps2[p] && ps2[p].getHTMLElement ? ps2[p].getHTMLElement() : null; if (pe) legs[p].style.top = (pe.getBoundingClientRect().top - br.top + 4) + "px"; });
+  };
+  const paint = (i) => {
+    if (i == null || i < 0 || i >= n) i = n - 1;
+    const b = bars[i], tt = jst(b.time * 1000);
+    const when = TF[tf].intraday ? `${tt.m}/${tt.d}（${tt.w}）${tt.hh}:${tt.mm}` : tf === "w1" ? `${tt.y}/${tt.m}/${tt.d}の週` : `${tt.y}/${tt.m}/${tt.d}（${tt.w}）`;
+    const o = $("ohlc"); o.textContent = "";
+    o.append(el("span", null, when));
+    [["始", b.open], ["高", b.high], ["安", b.low], ["終", b.close]].forEach(([k, v]) => { const s = el("span"); s.append(k + " ", el("b", null, p3(v))); o.append(s); });
+    const ch = i > 0 ? b.close - bars[i - 1].close : 0; o.append(el("span", ch > 0 ? "up" : ch < 0 ? "down" : null, "前の足比 " + sgn(ch * 100, 1, "銭")));
+    Object.values(legs).forEach(d => { d.textContent = ""; });
+    legendItems.forEach(it => {
+      const v = it.get(i), s = el("span"); s.style.color = it.color;
+      s.append(el("span", "nm", it.label + " "), document.createTextNode(v == null ? "—" : typeof v === "number" ? p3(v) : v));
+      legs[it.pane].append(s);
+    });
+  };
+  chart.subscribeCrosshairMove((param) => paint(param && param.logical != null ? Math.round(param.logical) : null));
+  paint(null);
+  requestAnimationFrame(() => requestAnimationFrame(place));
+  if (mainRO) mainRO.disconnect();
+  mainRO = new ResizeObserver(() => requestAnimationFrame(() => { if (!ranged) setRange(); place(); })); mainRO.observe(box);
+  $("cnote").textContent = `${TF[tf].label}。指で左右に動かす・2本指で拡大。値段は毎晩の更新時点まで（リアルタイムではない）。`;
+}
+
+function areaChart(name, box, data, color, prec, extra) {
+  drop(name);
+  const LC = LCH(), t = tokens();
+  const c = LC.createChart(box, baseOpts(t, Object.assign({ handleScroll: false, handleScale: false }, extra || {})));
+  c.applyOptions({ layout: { attributionLogo: false } });
+  const s = c.addSeries(LC.AreaSeries, { lineColor: color, lineWidth: 2, topColor: color + "38", bottomColor: color + "00", priceLineVisible: false, priceFormat: pf(prec) });
+  s.setData(data);
+  c.timeScale().fitContent();
+  charts[name] = c;
+}
+function drawMini() {
+  const last = D.hourly[D.hourly.length - 1].time, from = last - 5 * 86400, t = tokens();
+  areaChart("mini", $("mini"), D.hourly.filter(b => b.time >= from).map(b => ({ time: S(b.time), value: b.close })), t.accent, 3,
+    { timeScale: { visible: false }, rightPriceScale: { borderVisible: false }, grid: { vertLines: { visible: false }, horzLines: { color: t.line } }, crosshair: { mode: 2 } });
+}
+function drawRate() { areaChart("rate", $("chart-rate"), D.rates.diff.map(p => ({ time: S(p.time), value: p.value })), tokens().accent, 2); }
+function drawMk() {
+  const x = D.extra; if (!x || !mkSel || !x.marketCharts[mkSel]) return;
+  const m = x.markets.find(q => q.ticker === mkSel);
+  $("mk-title").textContent = (m ? m.name : "ほかの市場") + "（約半年）";
+  areaChart("mk", $("chart-mk"), x.marketCharts[mkSel].map(p => ({ time: S(p.time), value: p.value })), tokens().l4, m && m.last >= 1000 ? 0 : 2);
+}
+
+/* ---------------- 操作のつなぎこみ ---------------- */
+document.querySelectorAll("#nav button").forEach(b => b.addEventListener("click", () => show(b.dataset.view)));
+document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => show(b.dataset.go, { sub: b.dataset.sub })));
+$("mini").addEventListener("click", () => show("chart"));
+$("open-settings").addEventListener("click", openSheet);
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeSheet));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("sheet").hidden) closeSheet(); });
+$("chart-reset").addEventListener("click", () => { const tf = cfg.tf; cfg = defaults(); cfg.tf = tf; saveCfg(); renderSheet(); dirty.main = true; drawVisible(); });
+segGroup("tf", "tf", (val) => { if (cfg.tf !== val) { cfg.tf = val; saveCfg(); dirty.main = true; drawVisible(); } }, cfg.tf);
+const redrawAll = () => { Object.keys(dirty).forEach(k => { dirty[k] = true; }); drawVisible(); };
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+/* ---------------- 練習口座：計算 ---------------- */
+const TITLES = [[1, "見習いトレーダー"], [2, "ルーキー"], [4, "チャート読み"], [6, "ルールの番人"], [9, "ナイトトレーダー"], [13, "ドル円の達人"]];
+function rulesOf() { return D ? D.rules : { unitsPerLot: 1000, spreadSen: 0.2, marginPerLot: 6310 }; }
+/** その夜に入って翌晩まで持つ間に、大きな発表があるか */
+function eventNear(night) { return D ? D.events.find(e => e.affectsNight === night) || null : null; }
+function orderOpen() { return !!D && D.tradable && Date.now() / 1000 - D.snapshot.time < ORDER_WINDOW; }
+
+function scoreOf(o, balance) {
+  const items = [];
+  items.push({ label: "損切りを入れた", ok: o.stop != null });
+  const loss = o.stop != null ? o.stop * rulesOf().unitsPerLot * o.lots : Infinity;
+  items.push({ label: "損切りしたときの損が残高の5%以内", ok: loss <= balance * 0.05 });
+  items.push({ label: "利確の幅が損切りの幅以上", ok: o.stop != null && o.take != null && o.take >= o.stop });
+  const ev = eventNear(o.night);
+  items.push({ label: "大きな発表の前の夜を避けた", ok: !ev, why: ev ? ev.name : "" });
+  items.push({ label: "理由をメモした", ok: (o.memo || "").trim().length >= 5 });
+  return { items, total: items.filter(i => i.ok).length * 20 };
+}
+
+/** 未決済の注文を、次の夜の値段と1時間足で決済する */
+function settle(t) {
+  const snaps = (D && D.snapshots) || [];
+  const next = snaps.find(s => s.night > t.night);
+  if (!next) return null;
+  const R = rulesOf(), units = R.unitsPerLot * t.lots, side = t.action === "buy" ? 1 : -1;
+  const stopPx = t.stop != null ? t.entry - side * t.stop : null;
+  const takePx = t.take != null ? t.entry + side * t.take : null;
+  const lcPx = t.entry - side * ((t.balanceAtEntry - t.marginAtEntry) / units);   // ここまで逆に動くと強制決済
+  const adverse = stopPx == null ? lcPx : (side === 1 ? Math.max(stopPx, lcPx) : Math.min(stopPx, lcPx));
+  const adverseHow = stopPx != null && adverse === stopPx ? "損切り" : "強制決済（ロスカット）";
+  // 入ったあとに始まり、翌晩の決済より前に終わる1時間足だけを使う
+  const bars = (D.hourly || []).filter(b => b.time >= Math.ceil(t.entryTime / 3600) * 3600 && b.time + 3600 <= next.time);
+  let exit = next.price, how = "翌晩に決済", when = next.time;
+  for (const b of bars) {
+    const gap = side === 1 ? b.open <= adverse : b.open >= adverse;
+    const hitA = side === 1 ? b.low <= adverse : b.high >= adverse;
+    const hitT = takePx != null && (side === 1 ? b.high >= takePx : b.low <= takePx);
+    if (gap) { exit = b.open; how = adverseHow + "（値段が飛んだ）"; when = b.time; break; }
+    if (hitA) { exit = adverse; how = adverseHow; when = b.time; break; }
+    if (hitT) { exit = takePx; how = "利確"; when = b.time; break; }
+  }
+  const pnl = Math.round((side * (exit - t.entry) - R.spreadSen / 100) * units);
+  return { status: "closed", exit: Math.round(exit * 1000) / 1000, exitTime: when, how, pnl, settledBars: bars.length };
+}
+
+function ledger() {
+  const start = settings ? settings.startBalance : 10000;
+  const sorted = trades.slice().sort((a, b) => a.night < b.night ? -1 : 1);
+  let bal = start, peak = start, maxDd = 0, streak = 0, best = 0, wins = 0, closed = 0, nights = 0, ptsSum = 0, ptsN = 0, perfect = 0, withStop = 0, passes = 0;
+  sorted.forEach(t => {
+    nights++;
+    if (t.action === "pass") { passes++; return; }
+    ptsSum += t.score || 0; ptsN++; if ((t.score || 0) === 100) perfect++; if (t.stop != null) withStop++;
+    if (t.status === "closed") {
+      closed++; bal += t.pnl; peak = Math.max(peak, bal); maxDd = Math.min(maxDd, bal - peak);
+      if (t.pnl > 0) { wins++; streak++; best = Math.max(best, streak); } else streak = 0;
+    }
+  });
+  const xp = nights * 10 + Math.round(ptsSum / 5);
+  const level = Math.floor(xp / 100) + 1;
+  const title = TITLES.filter(x => x[0] <= level).pop()[1];
+  return { start, bal, peak, maxDd, best, wins, closed, nights, avgPts: ptsN ? Math.round(ptsSum / ptsN) : null, xp, level, title, perfect, withStop, passes, sorted };
+}
+
+/* ---------------- 練習口座：表示 ---------------- */
+let form = { side: null, lots: 1, stop: 0.5, take: 0.75, noStop: false, noTake: false, memo: "" };
+let confirmReset = false, busy = false;
+
+function renderAccount() {
+  const body = $("acct-body");
+  if (!D) return;
+  if (!db) { body.textContent = ""; body.append(el("p", "note", "練習口座の注文と記録は、claude.aiのページで使う（記録はPCとスマホで共有される）。")); const a = el("a", "btn wide", "練習口座を開く（claude.ai）"); a.href = "https://claude.ai/artifact/LPrrCw3wxSax1En6xdRTr7"; a.target = "_blank"; a.rel = "noopener"; a.style.display = "block"; a.style.textAlign = "center"; a.style.textDecoration = "none"; body.append(a); return; }
+  if (!settings) {
+    body.textContent = "";
+    body.append(el("p", "note", "まだ口座がない。空想の1万円で始めよう。"));
+    const b = el("button", "btn wide", "1万円で練習口座を作る"); b.disabled = !canWrite;
+    b.onclick = () => write(() => db.doc("game/settings").set({ startBalance: 10000, startedAt: new Date().toISOString() }));
+    body.append(b); return;
+  }
+  const L = ledger(), R = rulesOf();
+  body.textContent = "";
+
+  const open = trades.find(t => t.status === "open");
+  const acct = el("div", "acct");
+  const cell = (k, v, cls) => { const x = el("div", cls); x.append(el("span", null, k), el("b", null, v)); return x; };
+  acct.append(cell("残高", yenPlain(L.bal), "big"), cell("はじめから", yen(L.bal - L.start), "big"));
+  acct.append(cell("1Lotの証拠金", yenPlain(R.marginPerLot)), cell("持てる最大の数量", Math.max(0, Math.floor(L.bal / R.marginPerLot)) + "Lot"));
+  body.append(acct);
+
+  const rk = el("div", "rank"), r1 = el("div", "row");
+  r1.append(el("span", "title", `Lv.${L.level} ${L.title}`), el("span", "num muted", `${L.xp % 100} / 100 XP`));
+  const bar = el("div", "xbar"), fill = el("i"); fill.style.width = (L.xp % 100) + "%"; bar.append(fill);
+  rk.append(r1, bar, el("span", "muted", `参加した夜 ${L.nights}・ルール点の平均 ${L.avgPts == null ? "—" : L.avgPts + "点"}`));
+  body.append(rk);
+
+  if (L.bal < R.marginPerLot && !open) body.append(el("p", "note warn", "残高が1Lotに必要なお金を下回った。ここで終了。下の「リセット」でやり直せる。"));
+
+  const tonight = trades.find(t => t.night === D.night);
+  if (open) {
+    const side = open.action === "buy" ? "買い" : "売り", u = R.unitsPerLot * open.lots;
+    const now = D.snapshot.price, unreal = (open.action === "buy" ? 1 : -1) * (now - open.entry) * u;
+    const pos = el("div", "position");
+    pos.append(el("h3", null, `持っている：${side} ${open.lots}Lot`));
+    const row = (k, v) => { const r = el("div", "row"); r.append(el("span", "muted", k), el("span", "num", v)); return r; };
+    pos.append(row("入った値段", p3(open.entry)), row("損切り", open.stop != null ? p3(open.entry - (open.action === "buy" ? 1 : -1) * open.stop) : "なし"),
+      row("利確", open.take != null ? p3(open.entry + (open.action === "buy" ? 1 : -1) * open.take) : "なし"), row("今の値段での損益（目安）", yen(unreal)));
+    pos.append(el("p", "fine", "結果は次の夜の更新で自動で出る。"));
+    if (open.night === D.night && canWrite && orderOpen()) {
+      const c = el("button", "textbtn", "今夜の注文を取り消す"); c.onclick = () => write(() => db.doc("trades/" + open.night).delete()); pos.append(c);
+    }
+    body.append(pos);
+  } else if (tonight && tonight.action === "pass") {
+    const n = el("p", "note", "今夜は見送りにした。見送りも立派な判断（+10 XP）。");
+    if (canWrite && orderOpen()) { const c = el("button", "textbtn", " 取り消す"); c.onclick = () => write(() => db.doc("trades/" + tonight.night).delete()); n.append(c); }
+    body.append(n);
+  } else if (!orderOpen()) {
+    body.append(el("p", "note", D.weekday === 4 ? "金曜の夜は週末に持ち越さないルールなので、新しくは入らない。"
+      : D.tradable ? "今夜の受付は終わった（更新から3時間まで）。また明日の夜21:45ごろの更新のあとに。"
+      : "今は練習注文の時間じゃない。月〜木の夜21:45ごろの更新から3時間、注文できる。"));
+  } else if (L.bal >= R.marginPerLot) {
+    body.append(ticket(L));
+  }
+
+  const rs = el("div", "reset");
+  if (!confirmReset) { const b = el("button", "textbtn", "練習口座をリセットする"); b.disabled = !canWrite; b.onclick = () => { confirmReset = true; renderAccount(); }; rs.append(b); }
+  else {
+    rs.append(el("p", "note warn", "記録を全部消して1万円からやり直す。元には戻せない。"));
+    const y = el("button", "btn danger", "全部消してやり直す"), n = el("button", "btn ghost", "やめる");
+    y.style.marginRight = "8px"; y.onclick = resetAll; n.onclick = () => { confirmReset = false; renderAccount(); };
+    rs.append(y, n);
+  }
+  body.append(rs);
+  renderHistory(L);
+}
+
+function ticket(L) {
+  const R = rulesOf(), j = D.judgment, price = D.snapshot.price;
+  const box = el("div", "ticket");
+  box.append(el("h3", null, "今夜の練習注文"));
+  if (j.verdict !== "pass") {
+    const q = el("button", "textbtn", `判定どおりに入力（${j.verdict === "buy" ? "買い" : "売り"}・損切り${j.stop}円・利確${j.take}円）`);
+    q.onclick = () => { Object.assign(form, { side: j.verdict, stop: j.stop, take: j.take, noStop: false, noTake: false }); renderAccount(); };
+    q.style.marginBottom = "10px"; box.append(q);
+  }
+  const seg = el("div", "side3");
+  [["buy", "買い"], ["sell", "売り"], ["pass", "見送り"]].forEach(([k, label]) => {
+    const b = el("button", null, label); b.dataset.side = k; b.setAttribute("aria-pressed", String(form.side === k)); b.id = "side-" + k;
+    b.onclick = () => { form.side = k; renderAccount(); }; seg.append(b);
+  });
+  box.append(seg);
+  if (!form.side) { box.append(el("p", "fine", "買い・売り・見送りから選んでね。")); return box; }
+  if (form.side === "pass") {
+    const b = el("button", "btn wide", "今夜は見送る"); b.disabled = !canWrite || busy || !orderOpen();
+    b.onclick = () => write(() => db.doc("trades/" + D.night).set({ night: D.night, action: "pass", decidedAt: new Date().toISOString(), verdict: j.verdict, status: "pass" }));
+    box.append(b); return box;
+  }
+
+  const maxLots = Math.max(1, Math.floor(L.bal / R.marginPerLot));
+  form.lots = Math.min(form.lots, maxLots);
+  const f = el("div", "fields");
+  const lotF = el("label", "field"); lotF.append("数量（1Lot＝1,000通貨）");
+  const sel = el("select"); sel.id = "lots";
+  for (let i = 1; i <= Math.min(maxLots, 20); i++) { const o = el("option", null, `${i}Lot`); o.value = i; if (i === form.lots) o.selected = true; sel.append(o); }
+  sel.onchange = () => { form.lots = +sel.value; renderAccount(); }; lotF.append(sel);
+  const priceF = el("div", "field"); priceF.append("入る値段（今回の更新時）", el("b", "num", p3(price)));
+  const numF = (id, label, key, offKey, offLabel) => {
+    const w = el("div", "field"); const lab = el("label", null, label); lab.htmlFor = id;
+    const inp = el("input"); inp.type = "number"; inp.id = id; inp.step = "0.05"; inp.min = "0.05"; inp.max = "5"; inp.value = form[key]; inp.disabled = form[offKey];
+    inp.onchange = () => { const v = parseFloat(inp.value); if (v > 0) form[key] = Math.round(v * 100) / 100; renderAccount(); };
+    const tk = el("label", "tick"); const cb = el("input"); cb.type = "checkbox"; cb.id = id + "-off"; cb.checked = form[offKey];
+    cb.onchange = () => { form[offKey] = cb.checked; renderAccount(); }; tk.append(cb, offLabel);
+    w.append(lab, inp, tk); return w;
+  };
+  f.append(lotF, priceF, numF("stopw", "損切りの幅（円・0.5＝50銭）", "stop", "noStop", "入れない"), numF("takew", "利確の幅（円・0.75＝75銭）", "take", "noTake", "入れない"));
+  box.append(f);
+  const memoL = el("label", "field", "なぜこの判断？（メモ）"); const memo = el("textarea"); memo.id = "memo"; memo.value = form.memo;
+  memo.placeholder = form.side === "buy" ? "例：判定が買いで、金利差も広がっているから" : "例：平均線が下向きにそろっていて、金利差も縮んでいるから"; memo.oninput = () => { form.memo = memo.value; };
+  memo.onchange = () => renderAccount(); memoL.append(memo); box.append(memoL);
+
+  const side = form.side === "buy" ? 1 : -1, units = R.unitsPerLot * form.lots;
+  const o = { night: D.night, lots: form.lots, stop: form.noStop ? null : form.stop, take: form.noTake ? null : form.take, memo: form.memo };
+  const margin = R.marginPerLot * form.lots, lc = price - side * ((L.bal - margin) / units);
+  const pv = el("div", "preview");
+  const row = (k, v, cls) => { const r = el("div", "row"); r.append(el("span", "muted", k), el("span", "num " + (cls || ""), v)); return r; };
+  if (o.stop != null) pv.append(row(`損切り ${p3(price - side * o.stop)} に届いたら`, `${yen(-o.stop * units)}（残高の${(o.stop * units / L.bal * 100).toFixed(1)}%）`, "down"));
+  else pv.append(row("損切りなし：強制決済になる値段", p3(lc), "down"));
+  if (o.take != null) pv.append(row(`利確 ${p3(price + side * o.take)} に届いたら`, yen(o.take * units), "up"));
+  pv.append(row("必要なお金（証拠金）", yenPlain(margin)));
+  const sc = scoreOf(o, L.bal), ul = el("ul", "scoreline");
+  sc.items.forEach(i => { const li = el("li"); li.append(el("span", "mark " + (i.ok ? "ok" : "ng"), i.ok ? "OK" : "NG"), el("span", null, i.label + (i.why ? `（${i.why}）` : ""))); ul.append(li); });
+  pv.append(row("ルール点（予定）", sc.total + "点"), ul);
+  box.append(pv);
+
+  const b = el("button", "btn wide", `${form.side === "buy" ? "買い" : "売り"}で練習注文する`); b.disabled = !canWrite || busy || !orderOpen();
+  b.onclick = () => write(() => db.doc("trades/" + D.night).set({
+    night: D.night, action: form.side, lots: form.lots, stop: o.stop, take: o.take, memo: form.memo.trim(),
+    entry: price, entryTime: D.snapshot.time, decidedAt: new Date().toISOString(), verdict: j.verdict,
+    balanceAtEntry: L.bal, marginAtEntry: margin, score: sc.total, scoreItems: sc.items.map(i => i.ok), status: "open"
+  }).then(() => { form = { side: null, lots: 1, stop: 0.5, take: 0.75, noStop: false, noTake: false, memo: "" }; }));
+  box.append(b);
+  return box;
+}
+
+function renderHistory(L) {
+  const st = $("stats"); st.textContent = "";
+  const s = (k, v) => { const x = el("div"); x.append(el("span", null, k), el("b", null, v)); st.append(x); };
+  s("勝率", L.closed ? Math.round(L.wins / L.closed * 100) + "%" : "—");
+  s("合計損益", L.closed ? yen(L.bal - L.start) : "—");
+  s("最高残高", yenPlain(L.peak));
+  s("最大の落ち込み", L.maxDd ? yen(L.maxDd) : "—");
+  s("最大連勝", L.best + "回");
+  s("見送り", L.passes + "回");
+
+  const tb = $("hist"); tb.textContent = "";
+  if (!L.sorted.length) { const tr = el("tr"), td = el("td", "muted", "まだ記録がない。今夜の判断から始まる。"); td.colSpan = 8; tr.append(td); tb.append(tr); }
+  L.sorted.slice().reverse().forEach(t => {
+    const tr = el("tr");
+    tr.append(el("td", "num", dayLabel(t.night)));
+    tr.append(el("td", t.action === "buy" ? "up" : t.action === "sell" ? "down" : "muted", { buy: "買い", sell: "売り", pass: "見送り" }[t.action]));
+    if (t.action === "pass") { const td = el("td", "muted", "—"); td.colSpan = 6; tr.append(td); tb.append(tr); return; }
+    tr.append(el("td", "n", t.lots), el("td", "n", p3(t.entry)), el("td", "n", t.status === "closed" ? p3(t.exit) : "—"),
+      el("td", null, t.status === "closed" ? t.how : "結果待ち"), el("td", "n " + (t.pnl > 0 ? "up" : t.pnl < 0 ? "down" : ""), t.status === "closed" ? yen(t.pnl) : "—"), el("td", "n", (t.score ?? "—") + "点"));
+    tb.append(tr);
+  });
+
+  const bd = $("badges"); bd.textContent = "";
+  const trs = L.sorted.filter(t => t.action !== "pass");
+  [["初めての注文", trs.length >= 1], ["7夜参加", L.nights >= 7], ["30夜参加", L.nights >= 30], ["3連勝", L.best >= 3],
+   ["損切りを10回入れた", L.withStop >= 10], ["ルール満点×5", L.perfect >= 5], ["見送り上手（5回）", L.passes >= 5], ["残高1万1千円", L.peak >= 11000]]
+    .forEach(([k, got]) => bd.append(el("span", "badge" + (got ? " got" : ""), k)));
+}
+
+/* ---------------- 保存領域 ---------------- */
+async function write(fn) {
+  if (busy) return; busy = true;
+  try { await fn(); } catch (e) { $("acct-body").prepend(el("p", "note warn", "保存できなかった。少し待ってもう一度試してね。")); }
+  finally { busy = false; renderAccount(); }
+}
+async function resetAll() {
+  await write(async () => {
+    for (const t of trades) await db.doc("trades/" + t.night).delete();
+    await db.doc("game/settings").set({ startBalance: 10000, startedAt: new Date().toISOString() });
+  });
+  confirmReset = false; renderAccount();
+}
+let settling = false;
+async function settleOpen() {
+  if (!db || !canWrite || !D || settling) return;
+  settling = true;
+  try {
+    for (const t of trades.filter(x => x.status === "open")) { const r = settle(t); if (r) await db.doc("trades/" + t.night).update(r); }
+  } catch (e) { /* 次に開いたときにまた試す */ }
+  settling = false;
+}
+
+/* ---------------- はじめに ---------------- */
+show((location.hash || "").slice(1) || "home");
+window.addEventListener("hashchange", () => { const h = (location.hash || "").slice(1); if (h && h !== view) show(h); });
+(async () => {
+  const user = await window.claude?.use?.("user").catch(() => null);
+  db = await window.claude?.use?.("db").catch(() => null);
+  if (!db) { renderAccount(); return; }
+  canWrite = user ? (user.isOwner ? await user.isOwner() : true) : true;
+  const timer = setTimeout(() => { if (!settings && !trades.length) { const b = $("acct-body"); b.textContent = ""; b.append(el("p", "note", "記録にまだつながらない。通信の状態を確かめてね。")); } }, 10000);
+  db.doc("game/settings").onSnapshot(s => { clearTimeout(timer); settings = s.exists ? s.data() : null; renderAccount(); }, () => clearTimeout(timer));
+  db.collection("trades").onSnapshot(q => { trades = q.docs.map(d => d.data()); renderAccount(); if (D) settleOpen(); }, () => {});
+})();
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+</script>
+</body>
+</html>
