@@ -24,7 +24,7 @@
   --accent: #46b3c6; --up: #ef5a55; --down: #4b8ff0; --ok: #4cbf8a; --warn: #e2a64a; --px: #f08a3c;
   --l1: #f0c45c; --l2: #b58cf0; --l3: #4fc1a6; --l4: #5ab8e8; --l5: #e8707e; --l6: #8e96a2;
   --cloud-up: rgba(79, 193, 166, .15); --cloud-dn: rgba(232, 112, 126, .15); --band: rgba(90, 184, 232, .07);
-  --up-soft: rgba(239, 90, 85, .14); --down-soft: rgba(75, 143, 240, .15); --ok-soft: rgba(76, 191, 138, .14); --warn-soft: rgba(226, 166, 74, .14);
+  --up-soft: rgba(239, 90, 85, .14); --down-soft: rgba(75, 143, 240, .15); --ok-soft: rgba(76, 191, 138, .14); --warn-soft: rgba(226, 166, 74, .14); --mark: rgba(240, 196, 92, .30);
   --font: "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
   --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
   --gutter-l: max(16px, env(safe-area-inset-left, 0px)); --gutter-r: max(16px, env(safe-area-inset-right, 0px));
@@ -35,14 +35,14 @@
   --accent: #0b7d91; --up: #d2382f; --down: #1d5fcc; --ok: #1f8a57; --warn: #a2630a; --px: #c9600f;
   --l1: #8f6c06; --l2: #7a4fc6; --l3: #13876c; --l4: #1873b4; --l5: #c03a4f; --l6: #6b7480;
   --cloud-up: rgba(19, 135, 108, .12); --cloud-dn: rgba(192, 58, 79, .11); --band: rgba(24, 115, 180, .07);
-  --up-soft: rgba(210, 56, 47, .09); --down-soft: rgba(29, 95, 204, .09); --ok-soft: rgba(31, 138, 87, .1); --warn-soft: rgba(162, 99, 10, .1);
+  --up-soft: rgba(210, 56, 47, .09); --down-soft: rgba(29, 95, 204, .09); --ok-soft: rgba(31, 138, 87, .1); --warn-soft: rgba(162, 99, 10, .1); --mark: #fff0a8;
   color-scheme: light } }
 :root[data-theme="light"] {
   --bg: #f2f3f5; --panel: #ffffff; --raise: #e9ecf0; --line: #dadee4; --fg: #14171c; --muted: #5b6470; --faint: #8a929d;
   --accent: #0b7d91; --up: #d2382f; --down: #1d5fcc; --ok: #1f8a57; --warn: #a2630a; --px: #c9600f;
   --l1: #8f6c06; --l2: #7a4fc6; --l3: #13876c; --l4: #1873b4; --l5: #c03a4f; --l6: #6b7480;
   --cloud-up: rgba(19, 135, 108, .12); --cloud-dn: rgba(192, 58, 79, .11); --band: rgba(24, 115, 180, .07);
-  --up-soft: rgba(210, 56, 47, .09); --down-soft: rgba(29, 95, 204, .09); --ok-soft: rgba(31, 138, 87, .1); --warn-soft: rgba(162, 99, 10, .1);
+  --up-soft: rgba(210, 56, 47, .09); --down-soft: rgba(29, 95, 204, .09); --ok-soft: rgba(31, 138, 87, .1); --warn-soft: rgba(162, 99, 10, .1); --mark: #fff0a8;
   color-scheme: light }
 
 * { box-sizing: border-box }
@@ -141,6 +141,16 @@ details.more summary::before { content: "＋ " } details.more[open] summary::bef
 .factors h3 { font-size: 12px; font-weight: 500; margin: 0 0 6px; padding-bottom: 6px; border-bottom: 2px solid var(--line) }
 .factors .f-up h3 { border-color: var(--up) } .factors .f-dn h3 { border-color: var(--down) } .factors .f-ct h3 { border-color: var(--warn) }
 .factors ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13px }
+.factors .f-up h3 { color: var(--up) } .factors .f-dn h3 { color: var(--down) } .factors .f-ct h3 { color: var(--warn) }
+.factors li { line-height: 1.7 } .factors li + li { padding-top: 6px; border-top: 1px solid var(--line) }
+/* 文の中の強調：太字・マーカー・用語の説明 */
+.rt b { font-weight: 700 }
+.rt mark { background: var(--mark); color: inherit; padding: 0 2px; border-radius: 2px }
+.rt .gls, .gls { color: var(--muted); font-size: .86em }
+/* ホーム：今夜のポイント */
+.top3 { list-style: none; margin: 0; padding: 12px 14px; background: var(--raise); border-radius: 6px; display: grid; gap: 8px; counter-reset: t }
+.top3 li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; font-size: 14.5px; line-height: 1.7; counter-increment: t }
+.top3 li::before { content: counter(t); font-family: var(--mono); font-weight: 600; color: var(--accent) }
 
 /* 予定 */
 .events { list-style: none; margin: 0; padding: 0 }
@@ -290,6 +300,11 @@ dl.gl dt { font-weight: 500 } dl.gl dd { margin: 0; color: var(--muted) }
     <!-- ホーム -->
     <section class="view" id="v-home" aria-label="ホーム">
       <div class="pad wide home">
+        <div class="blk span2" id="top3-blk" hidden>
+          <div class="eyebrow"><h2>今夜のポイント</h2><span class="aside">Claude</span></div>
+          <ol class="top3" id="top3"></ol>
+        </div>
+
         <div class="blk">
           <div class="eyebrow"><h2>今夜のルール判定</h2><span class="aside" id="night"></span></div>
           <div class="verdict"><span class="vword pass" id="verdict">---</span><span class="chip" id="market">確認中</span></div>
@@ -465,6 +480,21 @@ dl.gl dt { font-weight: 500 } dl.gl dd { margin: 0; color: var(--muted) }
 const JST = 9 * 3600;
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+// 解説文の印を形にする：**太字**、==マーカー==、[[用語|説明]]（文字はtextContentで入れる）
+const rich = (tag, cls, text) => {
+  const e = el(tag, cls ? cls + " rt" : "rt"), re = /\*\*(.+?)\*\*|==(.+?)==|\[\[([^|\]]+)\|([^\]]+)\]\]/g;
+  let last = 0, m; text = text || "";
+  while ((m = re.exec(text))) {
+    if (m.index > last) e.append(text.slice(last, m.index));
+    if (m[1]) e.append(el("b", null, m[1]));
+    else if (m[2]) e.append(el("mark", null, m[2]));
+    else e.append(m[3], el("span", "gls", "（" + m[4] + "）"));
+    last = re.lastIndex;
+  }
+  e.append(text.slice(last));
+  return e;
+};
+const GLOSS = { "MACD": "勢いの目安", "RSI（14日）": "上がりすぎ・下がりすぎの目安", "ストキャスティクス": "上がりすぎ・下がりすぎの目安", "CCI": "勢いの強さの目安", "恐怖指数(VIX)": "株の不安の大きさ", "米2年金利": "アメリカの短い期間の金利", "日米の金利差": "アメリカと日本の金利の差" };
 const yen = (v) => (v < 0 ? "−" : v > 0 ? "+" : "") + Math.abs(Math.round(v)).toLocaleString("ja-JP") + "円";
 const yenPlain = (v) => Math.round(v).toLocaleString("ja-JP") + "円";
 const p3 = (v) => Number(v).toFixed(3);
@@ -671,17 +701,21 @@ function renderHome() {
     const vu = $("votes"); vu.textContent = ""; let grp = null;
     c.votes.forEach(vo => {
       if (vo.group !== grp) { grp = vo.group; vu.append(el("li", "grp", grp)); }
-      const li = el("li"); li.append(el("span", "vt " + (vo.vote > 0 ? "p" : vo.vote < 0 ? "m" : "z"), vo.vote > 0 ? "+1" : vo.vote < 0 ? "−1" : "0"), el("span", null, `${vo.label}：${vo.reason}`)); vu.append(li);
+      const li = el("li"), tx = el("span", null, vo.label); if (GLOSS[vo.label]) tx.append(el("span", "gls", "（" + GLOSS[vo.label] + "）")); tx.append("：" + vo.reason);
+      li.append(el("span", "vt " + (vo.vote > 0 ? "p" : vo.vote < 0 ? "m" : "z"), vo.vote > 0 ? "+1" : vo.vote < 0 ? "−1" : "0"), tx); vu.append(li);
     });
     $("score-caution").textContent = c.caution || "";
   }
 
   const cm = d.comment;
+  if (cm && cm.top3 && cm.top3.length) {
+    const t = $("top3"); t.textContent = ""; cm.top3.forEach(s => { const li = el("li"); li.append(rich("span", null, s)); t.append(li); }); $("top3-blk").hidden = false;
+  }
   if (cm && (cm.summary || cm.bullish)) {
     const box = $("comment"); box.textContent = "";
-    box.append(el("p", "summary", cm.summary || ""));
+    box.append(rich("p", "summary", cm.summary || ""));
     const f = el("div", "factors");
-    const col = (cls, title, items) => { const w = el("div", cls); w.append(el("h3", null, title)); const u = el("ul"); (items && items.length ? items : ["とくになし"]).forEach(t => u.append(el("li", null, t))); w.append(u); f.append(w); };
+    const col = (cls, title, items) => { const w = el("div", cls); w.append(el("h3", null, title)); const u = el("ul"); (items && items.length ? items : ["とくになし"]).forEach(t => u.append(rich("li", null, t))); w.append(u); f.append(w); };
     if (cm.bullish || cm.bearish || cm.cautions) {
       col("f-up", "上向き（ドル高・円安）の材料", cm.bullish); col("f-dn", "下向き（ドル安・円高）の材料", cm.bearish); col("f-ct", "注意すること", cm.cautions);
     } else if (cm.points) col("f-ct", "要点", cm.points);
@@ -781,7 +815,7 @@ function openArticle(n) {
   back.addEventListener("click", closeArticle);
   a.append(back, el("div", "meta", `${n.source || ""}　${timeOf(n)}　${n.region === "JP" ? "日本" : "海外"}`), el("h2", null, n.title));
   const ex = el("div", "explain"); ex.append(el("h3", null, "Claudeの解説"));
-  ex.append(el("p", null, noteOf(n) || "この見出しの解説はまだない。毎晩の更新で、ドル円に関係しそうな見出しから順に解説を入れる。"));
+  ex.append(rich("p", null, noteOf(n) || "この見出しの解説はまだない。毎晩の更新で、ドル円に関係しそうな見出しから順に解説を入れる。"));
   a.append(ex);
   const go = el("a", "btn", "元の記事を開く"); go.href = n.url; go.target = "_blank"; go.rel = "noopener noreferrer";
   a.append(go, el("p", "fine", "記事の本文は元のサイトで読んでね（このページには載せられない）。解説は見出しから読み取れることだけで、推測をふくむ。"));
