@@ -145,8 +145,8 @@ details.more summary::before { content: "＋ " } details.more[open] summary::bef
 .factors li { line-height: 1.7 } .factors li + li { padding-top: 6px; border-top: 1px solid var(--line) }
 /* 文の中の強調：太字・マーカー・用語の説明 */
 .rt b { font-weight: 700 }
-.rt mark { background: var(--mark); color: inherit; padding: 0 2px; border-radius: 2px }
-.rt .gls, .gls { color: var(--muted); font-size: .86em }
+.rt mark { background: var(--mark); color: inherit; font-weight: 700; padding: 0 2px; border-radius: 2px }
+.rt .gls, .gls { color: var(--accent); font-size: .88em }
 /* ホーム：今夜のポイント */
 .top3 { list-style: none; margin: 0; padding: 12px 14px; background: var(--raise); border-radius: 6px; display: grid; gap: 8px; counter-reset: t }
 .top3 li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; font-size: 14.5px; line-height: 1.7; counter-increment: t }
